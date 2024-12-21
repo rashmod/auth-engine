@@ -40,6 +40,33 @@ function App() {
 				))}
 			</div>
 
+			<div className="mt-4 flex items-center gap-4">
+				<div className="w-20">Roles</div>
+				{roles.map((role) => (
+					<div key={role}>
+						<input
+							type="checkbox"
+							id={role}
+							value={role}
+							className="peer hidden"
+							onChange={() =>
+								setUser((prev) => ({
+									...prev,
+									roles: prev.roles.includes(role) ? prev.roles.filter((r) => r !== role) : [...prev.roles, role],
+								}))
+							}
+							checked={user.roles.includes(role)}
+						/>
+						<label
+							htmlFor={role}
+							className="inline-flex cursor-pointer items-center justify-between rounded-lg border border-gray-200 bg-white p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-600 peer-checked:border-blue-600 peer-checked:text-blue-600"
+						>
+							{role}
+						</label>
+					</div>
+				))}
+			</div>
+
 			<div className="mx-auto mt-12 grid w-1/2 grid-cols-2 gap-4">
 				{todos.map((todo) => (
 					<div key={todo.id} className="rounded-md border border-gray-300 p-4">
@@ -76,3 +103,5 @@ const users = [
 	{ id: 4, name: 'Patricia Lebsack' },
 	{ id: 5, name: 'Chelsey Dietrich' },
 ];
+
+const roles = ['user', 'admin', 'super-admin'];
