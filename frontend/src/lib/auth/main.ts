@@ -25,6 +25,8 @@ export type Resource = {
 	attributes: Attributes;
 };
 
+type OwnerCondition = { key: string; operator: 'owner' };
+
 type AdvancedCondition =
 	| { key: string; value: string | number | boolean; operator: 'eq' | 'ne' }
 	| { key: string; value: number; operator: 'gt' | 'gte' | 'lt' | 'lte' }
@@ -34,7 +36,7 @@ type LogicalCondition =
 	| { operator: 'and' | 'or'; conditions: Condition[] }
 	| { operator: 'not'; conditions: Condition };
 
-type Condition = AdvancedCondition | LogicalCondition;
+type Condition = AdvancedCondition | LogicalCondition | OwnerCondition;
 
 export type Policy = {
 	action: Action;
@@ -91,6 +93,10 @@ export class Auth {
 			return this.evaluateLogicalCondition(user, resource, condition);
 		}
 
+		if (!('value' in condition)) {
+			return this.evaluateOwnershipCondition(user, resource, condition);
+		}
+
 		const key = condition.key;
 
 		const resourceValue = resource.attributes[key];
@@ -100,8 +106,11 @@ export class Auth {
 			return false;
 		}
 
-		const resourceEval = this.evaluateCondition(condition, resourceValue);
-		const userEval = this.evaluateCondition(condition, userValue);
+		const resourceEval = this.evaluateAdvancedCondition(
+			condition,
+			resourceValue
+		);
+		const userEval = this.evaluateAdvancedCondition(condition, userValue);
 
 		// i don't understand what logic should be used here
 		// should we use && or ||
@@ -130,7 +139,20 @@ export class Auth {
 		}
 	}
 
-	private evaluateCondition(condition: AdvancedCondition, value: unknown) {
+	private evaluateOwnershipCondition(
+		user: User,
+		resource: Resource,
+		condition: OwnerCondition
+	) {
+		if (!resource.attributes[condition.key]) return false;
+
+		return user.id === resource.attributes[condition.key];
+	}
+
+	private evaluateAdvancedCondition(
+		condition: AdvancedCondition,
+		value: unknown
+	) {
 		function isPrimitive(value: unknown) {
 			return (
 				typeof value === 'string' ||

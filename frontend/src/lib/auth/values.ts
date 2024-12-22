@@ -23,6 +23,7 @@ const doc2: Resource = {
 	type: 'document',
 	attributes: {
 		department: 'finance',
+		owner: '2',
 	},
 };
 
@@ -78,7 +79,24 @@ const policies: Policy[] = [
 	{
 		action: 'delete',
 		resource: 'file',
-		conditions: { operator: 'gt', key: 'level', value: 5 },
+		conditions: {
+			operator: 'or',
+			conditions: [
+				{ operator: 'gt', key: 'level', value: 5 },
+				{ operator: 'owner', key: 'owner' },
+			],
+		},
+	},
+	{
+		action: 'delete',
+		resource: 'document',
+		conditions: {
+			operator: 'or',
+			conditions: [
+				{ operator: 'gt', key: 'level', value: 5 },
+				{ operator: 'owner', key: 'owner' },
+			],
+		},
 	},
 ];
 
@@ -119,6 +137,18 @@ const tests = [
 		console.assert(
 			auth.isAuthorized(userUser_2, file1, 'delete'),
 			'user with level 6 should be authorized to delete file level 7'
+		),
+
+	() =>
+		console.assert(
+			auth.isAuthorized(userUser_1, doc2, 'delete'),
+			'user that is owner should be authorized to delete doc'
+		),
+
+	() =>
+		console.assert(
+			!auth.isAuthorized(userUser_2, doc2, 'delete'),
+			'user that is not owner should not be authorized to delete doc'
 		),
 ];
 
