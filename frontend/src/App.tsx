@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import UserSelection from '@/components/custom/user-selection';
 import { Button } from '@/components/ui/button';
+import '@/lib/auth/values';
 
 import RoleSelection from './components/custom/role-selection';
 
@@ -21,7 +22,12 @@ function App() {
 				<p>Roles: {user.roles.join(', ')}</p>
 			</div>
 
-			<UserSelection value={user.id} onChange={(val) => setUser((prev) => ({ ...prev, id: val.id, name: val.name }))} />
+			<UserSelection
+				value={user.id}
+				onChange={(val) =>
+					setUser((prev) => ({ ...prev, id: val.id, name: val.name }))
+				}
+			/>
 			<RoleSelection
 				value={user.roles}
 				onChange={(role) =>

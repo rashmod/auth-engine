@@ -9,7 +9,7 @@ export default function UserSelection({
 		<div className="flex items-center gap-4">
 			<div className="w-20">User</div>
 			{users.map((user) => (
-				<div>
+				<div key={user.id}>
 					<input
 						type="radio"
 						id={user.id.toString()}

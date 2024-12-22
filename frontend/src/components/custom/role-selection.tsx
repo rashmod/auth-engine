@@ -24,4 +24,4 @@ export default function RoleSelection({ value, onChange }: { value: string[]; on
 	);
 }
 
-const roles = ['user', 'admin', 'super-admin'];
+export const roles = ['user', 'admin', 'super-admin'] as const;
