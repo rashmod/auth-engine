@@ -1,6 +1,12 @@
-export type Action = 'read' | 'create' | 'update' | 'delete';
-export type ResourceType = 'document' | 'file';
-export type RoleType = 'user' | 'admin';
+const actions = ['read', 'create', 'update', 'delete'] as const;
+const resourceTypes = ['document', 'file'] as const;
+const roleTypes = ['user', 'admin'] as const;
+
+export type Action = (typeof actions)[number];
+export type ResourceType = (typeof resourceTypes)[number];
+export type RoleType = (typeof roleTypes)[number];
+
+type Attributes = Record<string, unknown>;
 
 export type Role = {
 	id: RoleType;
@@ -10,23 +16,50 @@ export type Role = {
 export type User = {
 	id: string;
 	roles: Role[];
-	attributes: Record<string, unknown>;
+	attributes: Attributes;
 };
 
 export type Resource = {
 	id: string;
 	type: ResourceType;
-	attributes: Record<string, unknown>;
+	attributes: Attributes;
 };
 
 export type Policy = {
 	action: Action;
 	resource: ResourceType;
-	conditions: Record<string, unknown>;
+	conditions: Attributes;
 };
 
 export class Auth {
-	constructor(private readonly policies: Policy[]) {}
+	constructor(private readonly policies: Policy[]) {
+		this.validatePolicies(this.policies);
+	}
+
+	isAuthorized(user: User, resource: Resource, action: Action) {
+		if (this.rbac(user, action)) return true;
+
+		if (this.abac(user, action, resource)) return true;
+
+		return false;
+	}
+
+	// this can later be replaced with zod
+	private validatePolicies(policies: Policy[]) {
+		for (const policy of policies) {
+			this.validatePolicy(policy);
+		}
+	}
+
+	private validatePolicy(policy: Policy) {
+		if (!actions.includes(policy.action)) {
+			throw new Error(`Invalid action: ${policy.action}`);
+		}
+
+		if (!resourceTypes.includes(policy.resource)) {
+			throw new Error(`Invalid resource: ${policy.resource}`);
+		}
+	}
 
 	private rbac(user: User, action: Action) {
 		const isRoleAuthorized = user.roles.some((role) =>
@@ -56,14 +89,6 @@ export class Auth {
 				}
 			}
 		}
-
-		return false;
-	}
-
-	isAuthorized(user: User, resource: Resource, action: Action) {
-		if (this.rbac(user, action)) return true;
-
-		if (this.abac(user, action, resource)) return true;
 
 		return false;
 	}
