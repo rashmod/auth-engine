@@ -31,6 +31,7 @@ const file1: Resource = {
 	type: 'file',
 	attributes: {
 		department: 'finance',
+		level: 7,
 	},
 };
 
@@ -43,7 +44,7 @@ const adminUser: User = {
 const userUser_1: User = {
 	id: '2',
 	roles: [user],
-	attributes: { department: 'engineering' },
+	attributes: { department: 'engineering', level: 2 },
 };
 
 const userUser_2: User = {
@@ -56,21 +57,28 @@ const policies: Policy[] = [
 	{
 		action: 'read',
 		resource: 'document',
-		conditions: { department: { operator: 'eq', value: 'engineering' } },
+		conditions: {
+			operator: 'eq',
+			value: 'engineering',
+			key: 'department',
+		},
 	},
 	{
 		action: 'update',
 		resource: 'document',
 		// any one of the conditions must be true
 		conditions: {
-			department: { operator: 'eq', value: 'engineering' },
-			level: { operator: 'gt', value: 10 },
+			operator: 'or',
+			conditions: [
+				{ operator: 'eq', key: 'department', value: 'engineering' },
+				{ operator: 'gt', key: 'level', value: 10 },
+			],
 		},
 	},
 	{
 		action: 'delete',
 		resource: 'file',
-		conditions: { level: { operator: 'gt', value: 5 } },
+		conditions: { operator: 'gt', key: 'level', value: 5 },
 	},
 ];
 
@@ -101,11 +109,16 @@ const tests = [
 			'user with no level should not be authorized to delete file'
 		),
 
-	// this fails because the attribute might be missing from the resource
+	() =>
+		console.assert(
+			!auth.isAuthorized(userUser_1, file1, 'delete'),
+			'user with level 2 should not be authorized to delete file level 7'
+		),
+
 	() =>
 		console.assert(
 			auth.isAuthorized(userUser_2, file1, 'delete'),
-			'user with level 6 should be authorized to delete file level 5'
+			'user with level 6 should be authorized to delete file level 7'
 		),
 ];
 

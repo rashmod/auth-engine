@@ -6,7 +6,7 @@ export type Action = (typeof actions)[number];
 export type ResourceType = (typeof resourceTypes)[number];
 export type RoleType = (typeof roleTypes)[number];
 
-type Attributes = Record<string, unknown>;
+type Attributes = Record<string, {}>;
 
 export type Role = {
 	id: RoleType;
@@ -25,15 +25,22 @@ export type Resource = {
 	attributes: Attributes;
 };
 
-export type AdvancedCondition =
-	| { value: string | number | boolean; operator: 'eq' | 'ne' }
-	| { value: number; operator: 'gt' | 'gte' | 'lt' | 'lte' }
-	| { value: unknown[]; operator: 'in' | 'nin' };
+type AdvancedCondition =
+	| { key: string; value: string | number | boolean; operator: 'eq' | 'ne' }
+	| { key: string; value: number; operator: 'gt' | 'gte' | 'lt' | 'lte' }
+	| { key: string; value: unknown[]; operator: 'in' | 'nin' };
+
+type LogicalCondition =
+	| { operator: 'and' | 'or'; conditions: Condition[] }
+	| { operator: 'not'; conditions: Condition };
+
+type Condition = AdvancedCondition | LogicalCondition;
 
 export type Policy = {
 	action: Action;
 	resource: ResourceType;
-	conditions: Record<string, AdvancedCondition>;
+	// should this be optional?
+	conditions: Condition;
 };
 
 export class Auth {
@@ -64,31 +71,63 @@ export class Auth {
 		});
 
 		for (const policy of relevantPolicies) {
-			const isPolicyAuthorized = this.evaluatePolicy(policy, user, resource);
+			const isPolicyAuthorized = this.evaluate(
+				user,
+				resource,
+				policy.conditions
+			);
 			if (isPolicyAuthorized) return true;
 		}
 
 		return false;
 	}
 
-	private evaluatePolicy(policy: Policy, user: User, resource: Resource) {
-		for (const key in policy.conditions) {
-			if (!resource.attributes[key] || !user.attributes[key]) {
-				continue;
-			}
-
-			const condition = policy.conditions[key];
-			const resourceValue = resource.attributes[key];
-			const userValue = user.attributes[key];
-
-			const resourceEval = this.evaluateCondition(condition, resourceValue);
-			const userEval = this.evaluateCondition(condition, userValue);
-
-			if (resourceEval && userEval) {
-				return true;
-			}
+	private evaluate(
+		user: User,
+		resource: Resource,
+		condition: Condition
+	): boolean {
+		if ('conditions' in condition) {
+			return this.evaluateLogicalCondition(user, resource, condition);
 		}
-		return false;
+
+		const key = condition.key;
+
+		const resourceValue = resource.attributes[key];
+		const userValue = user.attributes[key];
+
+		if (resourceValue === undefined || userValue === undefined) {
+			return false;
+		}
+
+		const resourceEval = this.evaluateCondition(condition, resourceValue);
+		const userEval = this.evaluateCondition(condition, userValue);
+
+		// i don't understand what logic should be used here
+		// should we use && or ||
+		// should we not evaluate conditions like clearance level for resources
+		return resourceEval || userEval;
+	}
+
+	private evaluateLogicalCondition(
+		user: User,
+		resource: Resource,
+		logicalCondition: LogicalCondition
+	) {
+		switch (logicalCondition.operator) {
+			case 'and':
+				return logicalCondition.conditions.every((c) =>
+					this.evaluate(user, resource, c)
+				);
+			case 'or':
+				return logicalCondition.conditions.some((c) =>
+					this.evaluate(user, resource, c)
+				);
+			case 'not':
+				return !this.evaluate(user, resource, logicalCondition);
+			default:
+				throw new Error('Invalid logical condition');
+		}
 	}
 
 	private evaluateCondition(condition: AdvancedCondition, value: unknown) {
