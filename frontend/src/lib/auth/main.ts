@@ -22,19 +22,49 @@ export type Resource = {
 export type Policy = {
 	action: Action;
 	resource: ResourceType;
-	conditions: Partial<{
-		[key in keyof User['attributes'] | keyof Resource['attributes']]: any;
-	}>;
+	conditions: Record<string, unknown>;
 };
 
 export class Auth {
 	constructor(private readonly policies: Policy[]) {}
 
-	rbac(user: User, action: Action) {}
+	private rbac(user: User, action: Action) {
+		const isRoleAuthorized = user.roles.some((role) =>
+			role.permissions.includes(action)
+		);
+		if (isRoleAuthorized) return true;
 
-	abac(resource: Resource, action: Action) {}
+		return false;
+	}
+
+	private abac(user: User, action: Action, resource: Resource) {
+		const relevantPolicies = this.policies.filter((policy) => {
+			return policy.resource === resource.type && policy.action === action;
+		});
+
+		for (const policy of relevantPolicies) {
+			for (const key in policy.conditions) {
+				if (!resource.attributes[key] || !user.attributes[key]) {
+					continue;
+				}
+
+				if (
+					resource.attributes[key] === policy.conditions[key] &&
+					user.attributes[key] === policy.conditions[key]
+				) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
 
 	isAuthorized(user: User, resource: Resource, action: Action) {
+		if (this.rbac(user, action)) return true;
+
+		if (this.abac(user, action, resource)) return true;
+
 		return false;
 	}
 }

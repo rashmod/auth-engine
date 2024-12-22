@@ -40,7 +40,7 @@ function App() {
 				}
 			/>
 
-			<div className="mx-auto mt-12 grid w-1/2 grid-cols-2 gap-4">
+			<div className="mx-auto mt-12 grid grid-cols-2 gap-4 lg:w-1/2">
 				{todos.map((todo) => (
 					<div key={todo.id} className="rounded-md border border-gray-300 p-4">
 						<p>{todo.title}</p>
