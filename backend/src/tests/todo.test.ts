@@ -3,7 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { Auth, Policy, Resource, User } from '@/engine';
 
 describe('Basic todo app', () => {
-	const policies: Policy[] = [
+	const roles = ['user', 'admin'] as const;
+	const resources = ['todo'] as const;
+
+	type UserWithRoles = User<(typeof roles)[number]>;
+
+	const policies: Policy<(typeof resources)[number]>[] = [
 		{
 			action: 'create',
 			resource: 'todo',
@@ -34,19 +39,19 @@ describe('Basic todo app', () => {
 
 	const auth = new Auth(policies);
 
-	const user: User = {
+	const user: UserWithRoles = {
 		id: 'user1',
 		roles: [{ id: 'user', permissions: ['read', 'create'] }],
 		attributes: {},
 	};
 
-	const anotherUser: User = {
+	const anotherUser: UserWithRoles = {
 		id: 'user2',
 		roles: [{ id: 'user', permissions: ['read', 'create'] }],
 		attributes: {},
 	};
 
-	const admin: User = {
+	const admin: UserWithRoles = {
 		id: 'admin1',
 		roles: [
 			{ id: 'admin', permissions: ['read', 'create', 'update', 'delete'] },
@@ -54,7 +59,7 @@ describe('Basic todo app', () => {
 		attributes: {},
 	};
 
-	const todo: Resource = {
+	const todo: Resource<(typeof resources)[number]> = {
 		id: 'todo1',
 		type: 'todo',
 		attributes: { ownerId: 'user1' },

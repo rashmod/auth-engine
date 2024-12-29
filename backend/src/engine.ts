@@ -1,26 +1,21 @@
 const actions = ['read', 'create', 'update', 'delete'] as const;
-const resourceTypes = ['todo', 'file', 'document'] as const;
-const roleTypes = ['user', 'admin'] as const;
 
 export type Action = (typeof actions)[number];
-export type ResourceType = (typeof resourceTypes)[number];
-export type RoleType = (typeof roleTypes)[number];
 
-type Attributes = Record<string, {}>;
+export type Attributes = Record<string, {}>;
 
-// TODO move off of roles to user groups that use attributes
-export type Role = {
+export type Role<RoleType extends string> = {
 	id: RoleType;
 	permissions: Action[];
 };
 
-export type User = {
+export type User<RoleType extends string> = {
 	id: string;
-	roles: Role[];
+	roles: Role<RoleType>[];
 	attributes: Attributes;
 };
 
-export type Resource = {
+export type Resource<ResourceType extends string> = {
 	id: string;
 	type: ResourceType;
 	attributes: Attributes;
@@ -39,18 +34,20 @@ type LogicalCondition =
 
 type Condition = AdvancedCondition | LogicalCondition | OwnerCondition;
 
-export type Policy = {
+export type Policy<ResourceType extends string> = {
 	action: Action;
 	resource: ResourceType;
 	conditions?: Condition;
 };
 
-export class Auth {
-	constructor(private readonly policies: Policy[]) {
-		this.validatePolicies(this.policies);
-	}
+export class Auth<RoleType extends string, ResourceType extends string> {
+	constructor(private readonly policies: Policy<ResourceType>[]) {}
 
-	isAuthorized(user: User, resource: Resource, action: Action) {
+	isAuthorized(
+		user: User<RoleType>,
+		resource: Resource<ResourceType>,
+		action: Action
+	) {
 		if (this.rbac(user, action)) return true;
 
 		if (this.abac(user, action, resource)) return true;
@@ -58,7 +55,7 @@ export class Auth {
 		return false;
 	}
 
-	private rbac(user: User, action: Action) {
+	private rbac(user: User<RoleType>, action: Action) {
 		const isRoleAuthorized = user.roles.some((role) =>
 			role.permissions.includes(action)
 		);
@@ -67,7 +64,11 @@ export class Auth {
 		return false;
 	}
 
-	private abac(user: User, action: Action, resource: Resource) {
+	private abac(
+		user: User<RoleType>,
+		action: Action,
+		resource: Resource<ResourceType>
+	) {
 		const relevantPolicies = this.policies.filter((policy) => {
 			return policy.resource === resource.type && policy.action === action;
 		});
@@ -87,8 +88,8 @@ export class Auth {
 	}
 
 	private evaluate(
-		user: User,
-		resource: Resource,
+		user: User<RoleType>,
+		resource: Resource<ResourceType>,
 		condition: Condition
 	): boolean {
 		if ('conditions' in condition) {
@@ -121,8 +122,8 @@ export class Auth {
 	}
 
 	private evaluateLogicalCondition(
-		user: User,
-		resource: Resource,
+		user: User<RoleType>,
+		resource: Resource<ResourceType>,
 		logicalCondition: LogicalCondition
 	) {
 		switch (logicalCondition.operator) {
@@ -142,8 +143,8 @@ export class Auth {
 	}
 
 	private evaluateOwnershipCondition(
-		user: User,
-		resource: Resource,
+		user: User<RoleType>,
+		resource: Resource<ResourceType>,
 		condition: OwnerCondition
 	) {
 		if (!resource.attributes[condition.key]) return false;
@@ -208,21 +209,7 @@ export class Auth {
 	}
 
 	// this can later be replaced with zod
-	private validatePolicies(policies: Policy[]) {
-		for (const policy of policies) {
-			this.validatePolicy(policy);
-		}
-	}
-
-	private validatePolicy(policy: Policy) {
-		if (!actions.includes(policy.action)) {
-			throw new Error(`Invalid action: ${policy.action}`);
-		}
-
-		if (!resourceTypes.includes(policy.resource)) {
-			throw new Error(`Invalid resource: ${policy.resource}`);
-		}
-	}
+	// private validatePolicies(policies: Policy<ResourceType>[]);
 }
 
 class InvalidOperandError extends Error {
