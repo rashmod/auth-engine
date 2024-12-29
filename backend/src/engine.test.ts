@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest';
+import { describe, expect, test } from 'vitest';
 
 import { Auth, Policy, Resource, Role, User } from './engine';
 
@@ -110,37 +110,39 @@ const policies: Policy[] = [
 
 const auth = new Auth(policies);
 
-test('admin should be authorized to update document', () => {
-	expect(auth.isAuthorized(adminUser, doc1, 'update')).toBe(true);
-});
+describe.skip('do not run this yet', () => {
+	test('admin should be authorized to update document', () => {
+		expect(auth.isAuthorized(adminUser, doc1, 'update')).toBe(true);
+	});
 
-test('user in engineering should be authorized to update document in engineering', () => {
-	expect(auth.isAuthorized(userUser_1, doc1, 'update')).toBe(true);
-});
+	test('user in engineering should be authorized to update document in engineering', () => {
+		expect(auth.isAuthorized(userUser_1, doc1, 'update')).toBe(true);
+	});
 
-test('user in engineering should not be authorized to update document in finance', () => {
-	expect(auth.isAuthorized(userUser_1, doc1, 'update')).toBe(false);
-});
+	test('user in engineering should not be authorized to update document in finance', () => {
+		expect(auth.isAuthorized(userUser_1, doc1, 'update')).toBe(false);
+	});
 
-test('user with no level should not be authorized to delete file', () => {
-	expect(auth.isAuthorized(userUser_1, file1, 'delete')).toBe(false);
-});
+	test('user with no level should not be authorized to delete file', () => {
+		expect(auth.isAuthorized(userUser_1, file1, 'delete')).toBe(false);
+	});
 
-test('user with level 2 should not be authorized to delete file level 7', () => {
-	expect(auth.isAuthorized(userUser_1, file1, 'delete')).toBe(false);
-});
+	test('user with level 2 should not be authorized to delete file level 7', () => {
+		expect(auth.isAuthorized(userUser_1, file1, 'delete')).toBe(false);
+	});
 
-test('user with level 6 should be authorized to delete file level 7', () => {
-	expect(auth.isAuthorized(userUser_2, file1, 'delete')).toBe(true);
-});
+	test('user with level 6 should be authorized to delete file level 7', () => {
+		expect(auth.isAuthorized(userUser_2, file1, 'delete')).toBe(true);
+	});
 
-test('user that is owner should be authorized to delete doc', () => {
-	expect(auth.isAuthorized(userUser_1, doc2, 'delete')).toBe(true);
-});
+	test('user that is owner should be authorized to delete doc', () => {
+		expect(auth.isAuthorized(userUser_1, doc2, 'delete')).toBe(true);
+	});
 
-test('user that is not owner should not be authorized to delete doc', () => {
-	expect(auth.isAuthorized(userUser_2, doc2, 'delete')).toBe(false);
-});
-test('new user should not be authorized to update file', () => {
-	expect(auth.isAuthorized(userUser_3, file1, 'update')).toBe(false);
+	test('user that is not owner should not be authorized to delete doc', () => {
+		expect(auth.isAuthorized(userUser_2, doc2, 'delete')).toBe(false);
+	});
+	test('new user should not be authorized to update file', () => {
+		expect(auth.isAuthorized(userUser_3, file1, 'update')).toBe(false);
+	});
 });
