@@ -24,9 +24,24 @@ export type Resource<ResourceType extends string> = {
 type OwnerCondition = { key: string; operator: 'owner' };
 
 type AdvancedCondition =
-	| { key: string; value: string | number | boolean; operator: 'eq' | 'ne' }
-	| { key: string; value: number; operator: 'gt' | 'gte' | 'lt' | 'lte' }
-	| { key: string; value: unknown[]; operator: 'in' | 'nin' };
+	| {
+			key: string;
+			value: string | number | boolean;
+			operator: 'eq' | 'ne';
+			compare?: 'user-only' | 'resource-only';
+	  }
+	| {
+			key: string;
+			value: number;
+			operator: 'gt' | 'gte' | 'lt' | 'lte';
+			compare?: 'user-only' | 'resource-only';
+	  }
+	| {
+			key: string;
+			value: unknown[];
+			operator: 'in' | 'nin';
+			compare?: 'user-only' | 'resource-only';
+	  };
 
 type LogicalCondition =
 	| { operator: 'and' | 'or'; conditions: Condition[] }
@@ -50,7 +65,8 @@ export class Auth<RoleType extends string, ResourceType extends string> {
 	) {
 		if (this.rbac(user, action)) return true;
 
-		if (this.abac(user, action, resource)) return true;
+		const result = this.abac(user, action, resource);
+		if (result) return true;
 
 		return false;
 	}
@@ -81,6 +97,7 @@ export class Auth<RoleType extends string, ResourceType extends string> {
 				resource,
 				policy.conditions
 			);
+
 			if (isPolicyAuthorized) return true;
 		}
 
@@ -105,6 +122,14 @@ export class Auth<RoleType extends string, ResourceType extends string> {
 		const resourceValue = resource.attributes[key];
 		const userValue = user.attributes[key];
 
+		if (userValue && condition.compare === 'user-only') {
+			return this.evaluateAdvancedCondition(condition, userValue);
+		}
+
+		if (resourceValue && condition.compare === 'resource-only') {
+			return this.evaluateAdvancedCondition(condition, userValue);
+		}
+
 		if (resourceValue === undefined || userValue === undefined) {
 			return false;
 		}
@@ -115,10 +140,7 @@ export class Auth<RoleType extends string, ResourceType extends string> {
 		);
 		const userEval = this.evaluateAdvancedCondition(condition, userValue);
 
-		// i don't understand what logic should be used here
-		// should we use && or ||
-		// should we not evaluate conditions like clearance level for resources
-		return resourceEval || userEval;
+		return resourceEval && userEval;
 	}
 
 	private evaluateLogicalCondition(
