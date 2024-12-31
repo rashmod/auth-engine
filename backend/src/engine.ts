@@ -1,6 +1,23 @@
 const actions = ['read', 'create', 'update', 'delete'] as const;
+const logicalOperators = ['and', 'or', 'not'] as const;
+const comparators = [
+	'eq',
+	'ne',
+	'gt',
+	'gte',
+	'lt',
+	'lte',
+	'in',
+	'nin',
+] as const;
+const ownershipOperator = 'owner' as const;
+const membershipOperator = 'contains' as const;
 
 export type Action = (typeof actions)[number];
+type LogicalOperator = (typeof logicalOperators)[number];
+type Comparator = (typeof comparators)[number];
+type OwnershipOperator = typeof ownershipOperator;
+type MembershipOperator = typeof membershipOperator;
 
 export type Attributes = Record<string, {}>;
 
@@ -20,33 +37,50 @@ export type Resource<ResourceType extends string> = {
 	attributes: Attributes;
 };
 
-type OwnerCondition = { key: string; operator: 'owner' };
+type Compare = 'user' | 'resource';
+
+type OwnershipCondition = { key: string; operator: OwnershipOperator };
+
+type DynamicKey = `$${string}`;
+type MembershipCondition = {
+	key: string;
+	operator: MembershipOperator;
+	value: DynamicKey;
+	source: Compare;
+};
 
 type AdvancedCondition =
 	| {
 			key: string;
 			value: string | number | boolean;
-			operator: 'eq' | 'ne';
-			compare?: 'user-only' | 'resource-only';
+			operator: Extract<Comparator, 'eq' | 'ne'>;
+			compare?: Compare;
 	  }
 	| {
 			key: string;
 			value: number;
-			operator: 'gt' | 'gte' | 'lt' | 'lte';
-			compare?: 'user-only' | 'resource-only';
+			operator: Extract<Comparator, 'gt' | 'gte' | 'lt' | 'lte'>;
+			compare?: Compare;
 	  }
 	| {
 			key: string;
 			value: unknown[];
-			operator: 'in' | 'nin';
-			compare?: 'user-only' | 'resource-only';
+			operator: Extract<Comparator, 'in' | 'nin'>;
+			compare?: Compare;
 	  };
 
 type LogicalCondition =
-	| { operator: 'and' | 'or'; conditions: Condition[] }
-	| { operator: 'not'; conditions: Condition };
+	| {
+			operator: Extract<LogicalOperator, 'and' | 'or'>;
+			conditions: Condition[];
+	  }
+	| { operator: Extract<LogicalOperator, 'not'>; conditions: Condition };
 
-type Condition = AdvancedCondition | LogicalCondition | OwnerCondition;
+type Condition =
+	| AdvancedCondition
+	| LogicalCondition
+	| OwnershipCondition
+	| MembershipCondition;
 
 export type Policy<ResourceType extends string> = {
 	action: Action;
@@ -93,34 +127,15 @@ export class Auth<ResourceType extends string> {
 			return this.evaluateLogicalCondition(user, resource, condition);
 		}
 
-		if (!('value' in condition)) {
+		if (condition.operator === ownershipOperator) {
 			return this.evaluateOwnershipCondition(user, resource, condition);
 		}
 
-		const key = condition.key;
-
-		const resourceValue = resource.attributes[key];
-		const userValue = user.attributes[key];
-
-		if (condition.compare === 'user-only' && userValue) {
-			return this.evaluateAdvancedCondition(condition, userValue);
+		if (condition.operator === membershipOperator) {
+			return this.evaluateMembershipCondition(user, resource, condition);
 		}
 
-		if (condition.compare === 'resource-only' && resourceValue) {
-			return this.evaluateAdvancedCondition(condition, userValue);
-		}
-
-		if (resourceValue === undefined || userValue === undefined) {
-			return false;
-		}
-
-		const resourceEval = this.evaluateAdvancedCondition(
-			condition,
-			resourceValue
-		);
-		const userEval = this.evaluateAdvancedCondition(condition, userValue);
-
-		return resourceEval && userEval;
+		return this.handleComparisonForAdvancedCondition(user, resource, condition);
 	}
 
 	private evaluateLogicalCondition(
@@ -153,13 +168,42 @@ export class Auth<ResourceType extends string> {
 	private evaluateOwnershipCondition(
 		user: User,
 		resource: Resource<ResourceType>,
-		condition: OwnerCondition
+		condition: OwnershipCondition
 	) {
 		if (!resource.attributes[condition.key]) {
 			return false;
 		}
 
 		return user.id === resource.attributes[condition.key];
+	}
+
+	private evaluateMembershipCondition(
+		user: User,
+		resource: Resource<ResourceType>,
+		membershipCondition: MembershipCondition
+	) {
+		const comparisonKey = this.getDynamicKey(membershipCondition.value);
+		const targetKey = membershipCondition.key;
+
+		const comparisonValue =
+			membershipCondition.source === 'resource'
+				? user.attributes[comparisonKey]
+				: resource.attributes[targetKey];
+
+		const targetValue =
+			membershipCondition.source === 'resource'
+				? resource.attributes[targetKey]
+				: user.attributes[targetKey];
+
+		if (targetValue === undefined || comparisonValue === undefined) {
+			return false;
+		}
+
+		if (!Array.isArray(targetValue)) {
+			throw new InvalidOperandError(targetValue, membershipOperator);
+		}
+
+		return targetValue.includes(comparisonValue);
 	}
 
 	private evaluateAdvancedCondition(
@@ -226,6 +270,48 @@ export class Auth<ResourceType extends string> {
 				return result;
 			}
 		}
+	}
+
+	private handleComparisonForAdvancedCondition(
+		user: User,
+		resource: Resource<ResourceType>,
+		advancedCondition: AdvancedCondition
+	) {
+		const key = advancedCondition.key;
+
+		const resourceValue = resource.attributes[key];
+		const userValue = user.attributes[key];
+
+		if (advancedCondition.compare === 'user' && userValue) {
+			return this.evaluateAdvancedCondition(advancedCondition, userValue);
+		}
+
+		if (advancedCondition.compare === 'resource' && resourceValue) {
+			return this.evaluateAdvancedCondition(advancedCondition, resourceValue);
+		}
+
+		if (resourceValue === undefined || userValue === undefined) {
+			return false;
+		}
+
+		const resourceEval = this.evaluateAdvancedCondition(
+			advancedCondition,
+			resourceValue
+		);
+		const userEval = this.evaluateAdvancedCondition(
+			advancedCondition,
+			userValue
+		);
+
+		return resourceEval && userEval;
+	}
+
+	private getDynamicKey(str: DynamicKey) {
+		const key = str.slice(1);
+		if (!key) {
+			throw new Error(`Invalid dynamic key format: ${str}`);
+		}
+		return key;
 	}
 
 	// this can later be replaced with zod

@@ -13,7 +13,7 @@ describe('Basic todo app', () => {
 				operator: 'in',
 				key: 'role',
 				value: ['user', 'admin'],
-				compare: 'user-only',
+				compare: 'user',
 			},
 		},
 		{
@@ -23,7 +23,7 @@ describe('Basic todo app', () => {
 				operator: 'in',
 				key: 'role',
 				value: ['user', 'admin'],
-				compare: 'user-only',
+				compare: 'user',
 			},
 		},
 		{
@@ -33,7 +33,7 @@ describe('Basic todo app', () => {
 				operator: 'or',
 				conditions: [
 					{ operator: 'owner', key: 'ownerId' },
-					{ operator: 'eq', key: 'role', value: 'admin', compare: 'user-only' },
+					{ operator: 'eq', key: 'role', value: 'admin', compare: 'user' },
 				],
 			},
 		},
@@ -44,7 +44,7 @@ describe('Basic todo app', () => {
 				operator: 'or',
 				conditions: [
 					{ operator: 'owner', key: 'ownerId' },
-					{ operator: 'eq', key: 'role', value: 'admin', compare: 'user-only' },
+					{ operator: 'eq', key: 'role', value: 'admin', compare: 'user' },
 				],
 			},
 		},
