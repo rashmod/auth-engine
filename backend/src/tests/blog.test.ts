@@ -20,9 +20,9 @@ describe('Basic blog app', () => {
 			resource: 'blog',
 			conditions: {
 				operator: 'eq',
-				key: 'isAuthenticated',
-				value: true,
-				compare: 'user',
+				attributeKey: 'isAuthenticated',
+				referenceValue: true,
+				compareSource: 'user',
 			},
 		},
 		{
@@ -38,9 +38,9 @@ describe('Basic blog app', () => {
 					{ operator: 'owner', key: 'authorId' },
 					{
 						operator: 'eq',
-						key: 'isAuthenticated',
-						value: true,
-						compare: 'user',
+						attributeKey: 'isAuthenticated',
+						referenceValue: true,
+						compareSource: 'user',
 					},
 				],
 			},
@@ -54,9 +54,9 @@ describe('Basic blog app', () => {
 					{ operator: 'owner', key: 'authorId' },
 					{
 						operator: 'eq',
-						key: 'isAuthenticated',
-						value: true,
-						compare: 'user',
+						attributeKey: 'isAuthenticated',
+						referenceValue: true,
+						compareSource: 'user',
 					},
 				],
 			},

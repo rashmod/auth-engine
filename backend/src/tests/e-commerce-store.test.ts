@@ -63,11 +63,16 @@ describe('Basic e-commerce app', () => {
 				conditions: [
 					{
 						operator: 'eq',
-						key: 'isAuthenticated',
-						value: true,
-						compare: 'user',
+						attributeKey: 'isAuthenticated',
+						referenceValue: true,
+						compareSource: 'user',
 					},
-					{ operator: 'eq', key: 'role', value: 'admin', compare: 'user' },
+					{
+						operator: 'eq',
+						attributeKey: 'role',
+						referenceValue: 'admin',
+						compareSource: 'user',
+					},
 				],
 			},
 		},
@@ -79,11 +84,16 @@ describe('Basic e-commerce app', () => {
 				conditions: [
 					{
 						operator: 'eq',
-						key: 'isAuthenticated',
-						value: true,
-						compare: 'user',
+						attributeKey: 'isAuthenticated',
+						referenceValue: true,
+						compareSource: 'user',
 					},
-					{ operator: 'eq', key: 'role', value: 'admin', compare: 'user' },
+					{
+						operator: 'eq',
+						attributeKey: 'role',
+						referenceValue: 'admin',
+						compareSource: 'user',
+					},
 				],
 			},
 		},
@@ -95,11 +105,16 @@ describe('Basic e-commerce app', () => {
 				conditions: [
 					{
 						operator: 'eq',
-						key: 'isAuthenticated',
-						value: true,
-						compare: 'user',
+						attributeKey: 'isAuthenticated',
+						referenceValue: true,
+						compareSource: 'user',
 					},
-					{ operator: 'eq', key: 'role', value: 'admin', compare: 'user' },
+					{
+						operator: 'eq',
+						attributeKey: 'role',
+						referenceValue: 'admin',
+						compareSource: 'user',
+					},
 				],
 			},
 		},
@@ -108,9 +123,9 @@ describe('Basic e-commerce app', () => {
 			action: 'create',
 			conditions: {
 				operator: 'eq',
-				key: 'isAuthenticated',
-				value: true,
-				compare: 'user',
+				attributeKey: 'isAuthenticated',
+				referenceValue: true,
+				compareSource: 'user',
 			},
 		},
 		{
@@ -124,9 +139,9 @@ describe('Basic e-commerce app', () => {
 						conditions: [
 							{
 								operator: 'eq',
-								key: 'isAuthenticated',
-								value: true,
-								compare: 'user',
+								attributeKey: 'isAuthenticated',
+								referenceValue: true,
+								compareSource: 'user',
 							},
 							{ operator: 'owner', key: 'userId' },
 						],
@@ -136,15 +151,15 @@ describe('Basic e-commerce app', () => {
 						conditions: [
 							{
 								operator: 'eq',
-								key: 'isAuthenticated',
-								value: true,
-								compare: 'user',
+								attributeKey: 'isAuthenticated',
+								referenceValue: true,
+								compareSource: 'user',
 							},
 							{
 								operator: 'eq',
-								key: 'role',
-								value: 'admin',
-								compare: 'user',
+								attributeKey: 'role',
+								referenceValue: 'admin',
+								compareSource: 'user',
 							},
 						],
 					},
@@ -162,9 +177,9 @@ describe('Basic e-commerce app', () => {
 						conditions: [
 							{
 								operator: 'eq',
-								key: 'isAuthenticated',
-								value: true,
-								compare: 'user',
+								attributeKey: 'isAuthenticated',
+								referenceValue: true,
+								compareSource: 'user',
 							},
 							{ operator: 'owner', key: 'userId' },
 						],
@@ -174,15 +189,15 @@ describe('Basic e-commerce app', () => {
 						conditions: [
 							{
 								operator: 'eq',
-								key: 'isAuthenticated',
-								value: true,
-								compare: 'user',
+								attributeKey: 'isAuthenticated',
+								referenceValue: true,
+								compareSource: 'user',
 							},
 							{
 								operator: 'eq',
-								key: 'role',
-								value: 'admin',
-								compare: 'user',
+								attributeKey: 'role',
+								referenceValue: 'admin',
+								compareSource: 'user',
 							},
 						],
 					},

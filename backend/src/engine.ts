@@ -43,31 +43,32 @@ type OwnershipCondition = { key: string; operator: OwnershipOperator };
 
 type DynamicKey = `$${string}`;
 type MembershipCondition = {
-	key: string;
+	targetKey: string;
 	operator: MembershipOperator;
-	value: DynamicKey;
-	source: Compare;
+	referenceKey: DynamicKey;
+	compareSource: Compare;
+};
+
+type AdvancedConditionGen<
+	O extends Comparator,
+	V extends string | number | boolean | unknown[],
+> = {
+	attributeKey: string;
+	referenceValue: V;
+	operator: O;
+	compareSource?: Compare;
 };
 
 type AdvancedCondition =
-	| {
-			key: string;
-			value: string | number | boolean;
-			operator: Extract<Comparator, 'eq' | 'ne'>;
-			compare?: Compare;
-	  }
-	| {
-			key: string;
-			value: number;
-			operator: Extract<Comparator, 'gt' | 'gte' | 'lt' | 'lte'>;
-			compare?: Compare;
-	  }
-	| {
-			key: string;
-			value: unknown[];
-			operator: Extract<Comparator, 'in' | 'nin'>;
-			compare?: Compare;
-	  };
+	| AdvancedConditionGen<
+			Extract<Comparator, 'eq' | 'ne'>,
+			string | number | boolean
+	  >
+	| AdvancedConditionGen<
+			Extract<Comparator, 'gt' | 'gte' | 'lt' | 'lte'>,
+			number
+	  >
+	| AdvancedConditionGen<Extract<Comparator, 'in' | 'nin'>, unknown[]>;
 
 type LogicalCondition =
 	| {
@@ -92,30 +93,26 @@ export class Auth<ResourceType extends string> {
 	constructor(private readonly policies: Policy<ResourceType>[]) {}
 
 	isAuthorized(user: User, resource: Resource<ResourceType>, action: Action) {
-		const result = this.abac(user, action, resource);
-		if (result) return true;
-
-		return false;
-	}
-
-	private abac(user: User, action: Action, resource: Resource<ResourceType>) {
 		const relevantPolicies = this.policies.filter((policy) => {
 			return policy.resource === resource.type && policy.action === action;
 		});
 
 		for (const policy of relevantPolicies) {
-			if (!policy.conditions) return true;
-
-			const isPolicyAuthorized = this.evaluate(
-				user,
-				resource,
-				policy.conditions
-			);
-
-			if (isPolicyAuthorized) return true;
+			const isAuthorized = this.abac(user, resource, policy);
+			if (isAuthorized) return true;
 		}
 
 		return false;
+	}
+
+	private abac(
+		user: User,
+		resource: Resource<ResourceType>,
+		policy: Policy<ResourceType>
+	) {
+		if (!policy.conditions) return true;
+
+		return this.evaluate(user, resource, policy.conditions);
 	}
 
 	private evaluate(
@@ -182,16 +179,16 @@ export class Auth<ResourceType extends string> {
 		resource: Resource<ResourceType>,
 		membershipCondition: MembershipCondition
 	) {
-		const comparisonKey = this.getDynamicKey(membershipCondition.value);
-		const targetKey = membershipCondition.key;
+		const comparisonKey = this.getDynamicKey(membershipCondition.referenceKey);
+		const targetKey = membershipCondition.targetKey;
 
 		const comparisonValue =
-			membershipCondition.source === 'resource'
+			membershipCondition.compareSource === 'resource'
 				? user.attributes[comparisonKey]
 				: resource.attributes[targetKey];
 
 		const targetValue =
-			membershipCondition.source === 'resource'
+			membershipCondition.compareSource === 'resource'
 				? resource.attributes[targetKey]
 				: user.attributes[targetKey];
 
@@ -231,8 +228,8 @@ export class Auth<ResourceType extends string> {
 				const val = value as string | number | boolean;
 				const result =
 					condition.operator === 'eq'
-						? val === condition.value
-						: val !== condition.value;
+						? val === condition.referenceValue
+						: val !== condition.referenceValue;
 
 				return result;
 			}
@@ -245,27 +242,27 @@ export class Auth<ResourceType extends string> {
 				const val = value as number;
 				switch (condition.operator) {
 					case 'gt':
-						return val > condition.value;
+						return val > condition.referenceValue;
 					case 'gte':
-						return val >= condition.value;
+						return val >= condition.referenceValue;
 					case 'lt':
-						return val < condition.value;
+						return val < condition.referenceValue;
 					case 'lte':
-						return val <= condition.value;
+						return val <= condition.referenceValue;
 				}
 			}
 
 			case 'in':
 			case 'nin': {
 				validateValue(
-					condition.value.some((item) => typeof item === typeof value),
+					condition.referenceValue.some((item) => typeof item === typeof value),
 					condition.operator,
 					value
 				);
 				const result =
 					condition.operator === 'in'
-						? condition.value.includes(value)
-						: !condition.value.includes(value);
+						? condition.referenceValue.includes(value)
+						: !condition.referenceValue.includes(value);
 
 				return result;
 			}
@@ -277,16 +274,16 @@ export class Auth<ResourceType extends string> {
 		resource: Resource<ResourceType>,
 		advancedCondition: AdvancedCondition
 	) {
-		const key = advancedCondition.key;
+		const key = advancedCondition.attributeKey;
 
 		const resourceValue = resource.attributes[key];
 		const userValue = user.attributes[key];
 
-		if (advancedCondition.compare === 'user' && userValue) {
+		if (advancedCondition.compareSource === 'user' && userValue) {
 			return this.evaluateAdvancedCondition(advancedCondition, userValue);
 		}
 
-		if (advancedCondition.compare === 'resource' && resourceValue) {
+		if (advancedCondition.compareSource === 'resource' && resourceValue) {
 			return this.evaluateAdvancedCondition(advancedCondition, resourceValue);
 		}
 
