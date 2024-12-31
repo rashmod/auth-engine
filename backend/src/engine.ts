@@ -222,10 +222,14 @@ export class Auth<RoleType extends string, ResourceType extends string> {
 
 			case 'in':
 			case 'nin': {
-				validateValue(Array.isArray(value), condition.operator, value);
 				return condition.operator === 'in'
 					? condition.value.includes(value)
 					: !condition.value.includes(value);
+				validateValue(
+					condition.value.some((item) => typeof item === typeof value),
+					condition.operator,
+					value
+				);
 			}
 		}
 	}
