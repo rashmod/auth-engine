@@ -10,10 +10,7 @@ import { Auth, Policy, Resource, User } from '@/engine';
  */
 
 describe('Basic blog app', () => {
-	const roles = [] as const;
 	const resources = ['blog'] as const;
-
-	type UserWithRoles = User<(typeof roles)[number]>;
 
 	// is the check for authenticated user necessary for when
 	// updating and deleting a blog when we are already checking for ownership
@@ -68,21 +65,18 @@ describe('Basic blog app', () => {
 
 	const auth = new Auth(policies);
 
-	const user: UserWithRoles = {
+	const user: User = {
 		id: 'user1',
-		roles: [],
 		attributes: { isAuthenticated: true },
 	};
 
-	const notAuthenticatedUser: UserWithRoles = {
+	const notAuthenticatedUser: User = {
 		id: 'user2',
-		roles: [],
 		attributes: {},
 	};
 
-	const authenticatedUser: UserWithRoles = {
+	const authenticatedUser: User = {
 		id: 'user3',
-		roles: [],
 		attributes: { isAuthenticated: true },
 	};
 

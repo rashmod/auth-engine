@@ -11,33 +11,27 @@ import { Auth, Policy, Resource, User } from '@/engine';
  */
 
 describe('Basic e-commerce app', () => {
-	const roles = ['user', 'admin'] as const;
 	const resources = ['product', 'order'] as const;
 
-	type UserWithRoles = User<(typeof roles)[number]>;
 	type Res = Resource<(typeof resources)[number]>;
 
-	const authenticatedUser: UserWithRoles = {
+	const authenticatedUser: User = {
 		id: 'user1',
-		roles: [],
 		attributes: { isAuthenticated: true },
 	};
 
-	const unauthenticatedUser: UserWithRoles = {
+	const unauthenticatedUser: User = {
 		id: 'user2',
-		roles: [],
 		attributes: {},
 	};
 
-	const authenticatedAdmin: UserWithRoles = {
+	const authenticatedAdmin: User = {
 		id: 'admin1',
-		roles: [],
 		attributes: { isAuthenticated: true, role: 'admin' },
 	};
 
-	const unauthenticatedAdmin: UserWithRoles = {
+	const unauthenticatedAdmin: User = {
 		id: 'admin2',
-		roles: [],
 		attributes: { role: 'admin' },
 	};
 

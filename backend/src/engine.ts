@@ -9,9 +9,8 @@ export type Role<RoleType extends string> = {
 	permissions: Action[];
 };
 
-export type User<RoleType extends string> = {
+export type User = {
 	id: string;
-	roles: Role<RoleType>[];
 	attributes: Attributes;
 };
 
@@ -55,36 +54,17 @@ export type Policy<ResourceType extends string> = {
 	conditions?: Condition;
 };
 
-export class Auth<RoleType extends string, ResourceType extends string> {
+export class Auth<ResourceType extends string> {
 	constructor(private readonly policies: Policy<ResourceType>[]) {}
 
-	isAuthorized(
-		user: User<RoleType>,
-		resource: Resource<ResourceType>,
-		action: Action
-	) {
-		if (this.rbac(user, action)) return true;
-
+	isAuthorized(user: User, resource: Resource<ResourceType>, action: Action) {
 		const result = this.abac(user, action, resource);
 		if (result) return true;
 
 		return false;
 	}
 
-	private rbac(user: User<RoleType>, action: Action) {
-		const isRoleAuthorized = user.roles.some((role) =>
-			role.permissions.includes(action)
-		);
-		if (isRoleAuthorized) return true;
-
-		return false;
-	}
-
-	private abac(
-		user: User<RoleType>,
-		action: Action,
-		resource: Resource<ResourceType>
-	) {
+	private abac(user: User, action: Action, resource: Resource<ResourceType>) {
 		const relevantPolicies = this.policies.filter((policy) => {
 			return policy.resource === resource.type && policy.action === action;
 		});
@@ -105,7 +85,7 @@ export class Auth<RoleType extends string, ResourceType extends string> {
 	}
 
 	private evaluate(
-		user: User<RoleType>,
+		user: User,
 		resource: Resource<ResourceType>,
 		condition: Condition
 	): boolean {
@@ -122,11 +102,11 @@ export class Auth<RoleType extends string, ResourceType extends string> {
 		const resourceValue = resource.attributes[key];
 		const userValue = user.attributes[key];
 
-		if (userValue && condition.compare === 'user-only') {
+		if (condition.compare === 'user-only' && userValue) {
 			return this.evaluateAdvancedCondition(condition, userValue);
 		}
 
-		if (resourceValue && condition.compare === 'resource-only') {
+		if (condition.compare === 'resource-only' && resourceValue) {
 			return this.evaluateAdvancedCondition(condition, userValue);
 		}
 
@@ -144,32 +124,40 @@ export class Auth<RoleType extends string, ResourceType extends string> {
 	}
 
 	private evaluateLogicalCondition(
-		user: User<RoleType>,
+		user: User,
 		resource: Resource<ResourceType>,
 		logicalCondition: LogicalCondition
 	) {
 		switch (logicalCondition.operator) {
-			case 'and':
-				return logicalCondition.conditions.every((c) =>
+			case 'and': {
+				const result = logicalCondition.conditions.every((c) =>
 					this.evaluate(user, resource, c)
 				);
-			case 'or':
-				return logicalCondition.conditions.some((c) =>
+				return result;
+			}
+			case 'or': {
+				const result = logicalCondition.conditions.some((c) =>
 					this.evaluate(user, resource, c)
 				);
-			case 'not':
-				return !this.evaluate(user, resource, logicalCondition);
+				return result;
+			}
+			case 'not': {
+				const result = !this.evaluate(user, resource, logicalCondition);
+				return result;
+			}
 			default:
 				throw new Error('Invalid logical condition');
 		}
 	}
 
 	private evaluateOwnershipCondition(
-		user: User<RoleType>,
+		user: User,
 		resource: Resource<ResourceType>,
 		condition: OwnerCondition
 	) {
-		if (!resource.attributes[condition.key]) return false;
+		if (!resource.attributes[condition.key]) {
+			return false;
+		}
 
 		return user.id === resource.attributes[condition.key];
 	}
@@ -197,9 +185,12 @@ export class Auth<RoleType extends string, ResourceType extends string> {
 			case 'ne': {
 				validateValue(isPrimitive(value), condition.operator, value);
 				const val = value as string | number | boolean;
-				return condition.operator === 'eq'
-					? val === condition.value
-					: val !== condition.value;
+				const result =
+					condition.operator === 'eq'
+						? val === condition.value
+						: val !== condition.value;
+
+				return result;
 			}
 
 			case 'gt':
@@ -222,14 +213,17 @@ export class Auth<RoleType extends string, ResourceType extends string> {
 
 			case 'in':
 			case 'nin': {
-				return condition.operator === 'in'
-					? condition.value.includes(value)
-					: !condition.value.includes(value);
 				validateValue(
 					condition.value.some((item) => typeof item === typeof value),
 					condition.operator,
 					value
 				);
+				const result =
+					condition.operator === 'in'
+						? condition.value.includes(value)
+						: !condition.value.includes(value);
+
+				return result;
 			}
 		}
 	}

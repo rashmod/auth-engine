@@ -3,26 +3,39 @@ import { describe, expect, it } from 'vitest';
 import { Auth, Policy, Resource, User } from '@/engine';
 
 describe('Basic todo app', () => {
-	const roles = ['user', 'admin'] as const;
 	const resources = ['todo'] as const;
-
-	type UserWithRoles = User<(typeof roles)[number]>;
 
 	const policies: Policy<(typeof resources)[number]>[] = [
 		{
 			action: 'create',
 			resource: 'todo',
-			conditions: { operator: 'in', key: 'role', value: ['user', 'admin'] },
+			conditions: {
+				operator: 'in',
+				key: 'role',
+				value: ['user', 'admin'],
+				compare: 'user-only',
+			},
 		},
 		{
 			action: 'read',
 			resource: 'todo',
-			conditions: { operator: 'in', key: 'role', value: ['user', 'admin'] },
+			conditions: {
+				operator: 'in',
+				key: 'role',
+				value: ['user', 'admin'],
+				compare: 'user-only',
+			},
 		},
 		{
 			action: 'update',
 			resource: 'todo',
-			conditions: { operator: 'owner', key: 'ownerId' },
+			conditions: {
+				operator: 'or',
+				conditions: [
+					{ operator: 'owner', key: 'ownerId' },
+					{ operator: 'eq', key: 'role', value: 'admin', compare: 'user-only' },
+				],
+			},
 		},
 		{
 			action: 'delete',
@@ -31,7 +44,7 @@ describe('Basic todo app', () => {
 				operator: 'or',
 				conditions: [
 					{ operator: 'owner', key: 'ownerId' },
-					{ operator: 'eq', key: 'role', value: 'admin' },
+					{ operator: 'eq', key: 'role', value: 'admin', compare: 'user-only' },
 				],
 			},
 		},
@@ -39,24 +52,19 @@ describe('Basic todo app', () => {
 
 	const auth = new Auth(policies);
 
-	const user: UserWithRoles = {
+	const user: User = {
 		id: 'user1',
-		roles: [{ id: 'user', permissions: ['read', 'create'] }],
-		attributes: {},
+		attributes: { role: 'user' },
 	};
 
-	const anotherUser: UserWithRoles = {
+	const anotherUser: User = {
 		id: 'user2',
-		roles: [{ id: 'user', permissions: ['read', 'create'] }],
-		attributes: {},
+		attributes: { role: 'user' },
 	};
 
-	const admin: UserWithRoles = {
+	const admin: User = {
 		id: 'admin1',
-		roles: [
-			{ id: 'admin', permissions: ['read', 'create', 'update', 'delete'] },
-		],
-		attributes: {},
+		attributes: { role: 'admin' },
 	};
 
 	const todo: Resource<(typeof resources)[number]> = {
