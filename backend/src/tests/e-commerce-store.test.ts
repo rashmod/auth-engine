@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { Auth } from '@/engine';
 import { PolicyGenerator } from '@/policy-generator';
-import { Resource, User } from '@/schema';
+import { User } from '@/schema';
 
 /*
  * basic e-commerce app
@@ -37,23 +37,23 @@ describe('Basic e-commerce app', () => {
 		attributes: { role: 'admin' },
 	};
 
-	const product: Resource = {
+	const product = policyGenerator.createResource({
 		id: 'product1',
 		type: 'product',
 		attributes: {},
-	};
+	});
 
-	const user1Order: Resource = {
+	const user1Order = policyGenerator.createResource({
 		id: 'order1',
 		type: 'order',
 		attributes: { userId: 'user1' },
-	};
+	});
 
-	const user2Order: Resource = {
+	const user2Order = policyGenerator.createResource({
 		id: 'order2',
 		type: 'order',
 		attributes: { userId: 'user2' },
-	};
+	});
 
 	policyGenerator.addPolicies([
 		{ resource: 'product', action: 'read' },

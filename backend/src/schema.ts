@@ -11,13 +11,19 @@ export const userSchema = z.object({
 });
 export type User = z.infer<typeof userSchema>;
 
-// TODO handle type safe resource types
-export const resourceSchema = z.object({
-	id: z.string(),
-	type: z.string(),
-	attributes: attributeSchema,
-});
-export type Resource = z.infer<typeof resourceSchema>;
+export function generateResouceSchema<T extends readonly [string, ...string[]]>(
+	resources: T
+) {
+	return z.object({
+		id: z.string(),
+		type: z.enum(resources),
+		attributes: attributeSchema,
+	});
+}
+
+export type Resource<T extends readonly [string, ...string[]]> = z.infer<
+	ReturnType<typeof generateResouceSchema<T>>
+>;
 
 export const logicalOperators = z.enum(['and', 'or', 'not']);
 export const ownershipOperator = z.literal('owner');

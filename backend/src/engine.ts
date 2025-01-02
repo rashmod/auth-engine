@@ -15,7 +15,7 @@ import { membershipOperator, ownershipOperator } from '@/schema';
 export class Auth<T extends readonly [string, ...string[]]> {
 	constructor(private readonly policies: Policy<T>[]) {}
 
-	isAuthorized(user: User, resource: Resource, action: Action) {
+	isAuthorized(user: User, resource: Resource<T>, action: Action) {
 		const relevantPolicies = this.policies.filter((policy) => {
 			return policy.resource === resource.type && policy.action === action;
 		});
@@ -28,7 +28,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		return false;
 	}
 
-	private abac(user: User, resource: Resource, policy: Policy<T>) {
+	private abac(user: User, resource: Resource<T>, policy: Policy<T>) {
 		if (!policy.conditions) return true;
 
 		return this.evaluate(user, resource, policy.conditions);
@@ -36,7 +36,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 
 	private evaluate(
 		user: User,
-		resource: Resource,
+		resource: Resource<T>,
 		condition: Condition
 	): boolean {
 		if ('conditions' in condition) {
@@ -56,7 +56,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 
 	private evaluateLogicalCondition(
 		user: User,
-		resource: Resource,
+		resource: Resource<T>,
 		logicalCondition: LogicalCondition
 	) {
 		switch (logicalCondition.operator) {
@@ -83,7 +83,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 
 	private evaluateOwnershipCondition(
 		user: User,
-		resource: Resource,
+		resource: Resource<T>,
 		condition: OwnershipCondition
 	) {
 		if (!resource.attributes[condition.ownerKey]) {
@@ -95,7 +95,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 
 	private evaluateMembershipCondition(
 		user: User,
-		resource: Resource,
+		resource: Resource<T>,
 		membershipCondition: MembershipCondition
 	) {
 		const comparisonKey = this.getDynamicKey(membershipCondition.referenceKey);
@@ -194,7 +194,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 
 	private handleComparisonForAdvancedCondition(
 		user: User,
-		resource: Resource,
+		resource: Resource<T>,
 		advancedCondition: AdvancedCondition
 	) {
 		const key = advancedCondition.attributeKey;

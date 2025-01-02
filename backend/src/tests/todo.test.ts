@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { Auth } from '@/engine';
 import { PolicyGenerator } from '@/policy-generator';
-import { Resource, User } from '@/schema';
+import { User } from '@/schema';
 
 describe('Basic todo app', () => {
 	const resources = ['todo'] as const;
@@ -82,11 +82,11 @@ describe('Basic todo app', () => {
 		attributes: { role: 'admin' },
 	};
 
-	const todo: Resource = {
+	const todo = policyGenerator.createResource({
 		id: 'todo1',
 		type: 'todo',
 		attributes: { ownerId: 'user1' },
-	};
+	});
 
 	it('should allow user to create a todo', () => {
 		expect(auth.isAuthorized(user, todo, 'create')).toBe(true);

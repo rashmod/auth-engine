@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { Auth } from '@/engine';
 import { PolicyGenerator } from '@/policy-generator';
-import { Resource, User } from '@/schema';
+import { User } from '@/schema';
 
 /*
  * basic blog app
@@ -86,11 +86,11 @@ describe('Basic blog app', () => {
 		attributes: { isAuthenticated: true },
 	};
 
-	const blog: Resource = {
+	const blog = policyGenerator.createResource({
 		id: 'blog1',
 		type: 'blog',
 		attributes: { authorId: 'user1' },
-	};
+	});
 
 	it('should allow authenticated user to create a blog', () => {
 		expect(auth.isAuthorized(user, blog, 'create')).toBe(true);
