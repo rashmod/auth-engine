@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { Auth, Policy, Resource, User } from '@/engine';
+import { Auth } from '@/engine';
+import { PolicyGenerator } from '@/policy-generator';
+import { Resource, User } from '@/schema';
 
 /*
  * basic blog app
@@ -14,7 +16,9 @@ describe('Basic blog app', () => {
 
 	// is the check for authenticated user necessary for when
 	// updating and deleting a blog when we are already checking for ownership
-	const policies: Policy<(typeof resources)[number]>[] = [
+
+	const policyGenerator = new PolicyGenerator(resources);
+	policyGenerator.addPolicies([
 		{
 			action: 'create',
 			resource: 'blog',
@@ -35,7 +39,7 @@ describe('Basic blog app', () => {
 			conditions: {
 				operator: 'and',
 				conditions: [
-					{ operator: 'owner', key: 'authorId' },
+					{ operator: 'owner', ownerKey: 'authorId' },
 					{
 						operator: 'eq',
 						attributeKey: 'isAuthenticated',
@@ -51,7 +55,7 @@ describe('Basic blog app', () => {
 			conditions: {
 				operator: 'and',
 				conditions: [
-					{ operator: 'owner', key: 'authorId' },
+					{ operator: 'owner', ownerKey: 'authorId' },
 					{
 						operator: 'eq',
 						attributeKey: 'isAuthenticated',
@@ -61,7 +65,9 @@ describe('Basic blog app', () => {
 				],
 			},
 		},
-	];
+	]);
+
+	const policies = policyGenerator.getPolicies();
 
 	const auth = new Auth(policies);
 
@@ -80,7 +86,7 @@ describe('Basic blog app', () => {
 		attributes: { isAuthenticated: true },
 	};
 
-	const blog: Resource<(typeof resources)[number]> = {
+	const blog: Resource = {
 		id: 'blog1',
 		type: 'blog',
 		attributes: { authorId: 'user1' },

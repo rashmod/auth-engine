@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { Auth, Policy, Resource, User } from '@/engine';
+import { Auth } from '@/engine';
+import { PolicyGenerator } from '@/policy-generator';
+import { Resource, User } from '@/schema';
 
 describe('Basic todo app', () => {
 	const resources = ['todo'] as const;
 
-	const policies: Policy<(typeof resources)[number]>[] = [
+	const policyGenerator = new PolicyGenerator(resources);
+	policyGenerator.addPolicies([
 		{
 			action: 'create',
 			resource: 'todo',
@@ -32,7 +35,7 @@ describe('Basic todo app', () => {
 			conditions: {
 				operator: 'or',
 				conditions: [
-					{ operator: 'owner', key: 'ownerId' },
+					{ operator: 'owner', ownerKey: 'ownerId' },
 					{
 						operator: 'eq',
 						attributeKey: 'role',
@@ -48,7 +51,7 @@ describe('Basic todo app', () => {
 			conditions: {
 				operator: 'or',
 				conditions: [
-					{ operator: 'owner', key: 'ownerId' },
+					{ operator: 'owner', ownerKey: 'ownerId' },
 					{
 						operator: 'eq',
 						attributeKey: 'role',
@@ -58,7 +61,9 @@ describe('Basic todo app', () => {
 				],
 			},
 		},
-	];
+	]);
+
+	const policies = policyGenerator.getPolicies();
 
 	const auth = new Auth(policies);
 
@@ -77,7 +82,7 @@ describe('Basic todo app', () => {
 		attributes: { role: 'admin' },
 	};
 
-	const todo: Resource<(typeof resources)[number]> = {
+	const todo: Resource = {
 		id: 'todo1',
 		type: 'todo',
 		attributes: { ownerId: 'user1' },

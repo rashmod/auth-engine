@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { Auth, Policy, Resource, User } from '@/engine';
+import { Auth } from '@/engine';
+import { PolicyGenerator } from '@/policy-generator';
+import { Resource, User } from '@/schema';
 
 /*
  * basic e-commerce app
@@ -13,7 +15,7 @@ import { Auth, Policy, Resource, User } from '@/engine';
 describe('Basic e-commerce app', () => {
 	const resources = ['product', 'order'] as const;
 
-	type Res = Resource<(typeof resources)[number]>;
+	const policyGenerator = new PolicyGenerator(resources);
 
 	const authenticatedUser: User = {
 		id: 'user1',
@@ -35,25 +37,25 @@ describe('Basic e-commerce app', () => {
 		attributes: { role: 'admin' },
 	};
 
-	const product: Res = {
+	const product: Resource = {
 		id: 'product1',
 		type: 'product',
 		attributes: {},
 	};
 
-	const user1Order: Res = {
+	const user1Order: Resource = {
 		id: 'order1',
 		type: 'order',
 		attributes: { userId: 'user1' },
 	};
 
-	const user2Order: Res = {
+	const user2Order: Resource = {
 		id: 'order2',
 		type: 'order',
 		attributes: { userId: 'user2' },
 	};
 
-	const policies: Policy<(typeof resources)[number]>[] = [
+	policyGenerator.addPolicies([
 		{ resource: 'product', action: 'read' },
 		{
 			resource: 'product',
@@ -143,7 +145,7 @@ describe('Basic e-commerce app', () => {
 								referenceValue: true,
 								compareSource: 'user',
 							},
-							{ operator: 'owner', key: 'userId' },
+							{ operator: 'owner', ownerKey: 'userId' },
 						],
 					},
 					{
@@ -181,7 +183,7 @@ describe('Basic e-commerce app', () => {
 								referenceValue: true,
 								compareSource: 'user',
 							},
-							{ operator: 'owner', key: 'userId' },
+							{ operator: 'owner', ownerKey: 'userId' },
 						],
 					},
 					{
@@ -204,7 +206,9 @@ describe('Basic e-commerce app', () => {
 				],
 			},
 		},
-	];
+	]);
+
+	const policies = policyGenerator.getPolicies();
 
 	const auth = new Auth(policies);
 
