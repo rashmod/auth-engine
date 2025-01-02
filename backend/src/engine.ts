@@ -1,98 +1,44 @@
-const actions = ['read', 'create', 'update', 'delete'] as const;
-const logicalOperators = ['and', 'or', 'not'] as const;
-const comparators = [
-	'eq',
-	'ne',
-	'gt',
-	'gte',
-	'lt',
-	'lte',
-	'in',
-	'nin',
-] as const;
-const ownershipOperator = 'owner' as const;
-const membershipOperator = 'contains' as const;
+import { z } from 'zod';
 
-export type Action = (typeof actions)[number];
-type LogicalOperator = (typeof logicalOperators)[number];
-type Comparator = (typeof comparators)[number];
-type OwnershipOperator = typeof ownershipOperator;
-type MembershipOperator = typeof membershipOperator;
+import {
+	Action,
+	AdvancedCondition,
+	Condition,
+	DynamicKey,
+	LogicalCondition,
+	MembershipCondition,
+	OwnershipCondition,
+	Policy,
+	Resource,
+	User,
+	actions,
+	conditionSchema,
+	membershipOperator,
+	ownershipOperator,
+} from '@/schema';
 
-export type Attributes = Record<string, {}>;
+export class Auth<ResourceType extends readonly [string, ...string[]]> {
+	private policies: Policy<ResourceType>[] = [];
+	private policySchema: z.ZodSchema<Policy<ResourceType>>;
 
-export type Role<RoleType extends string> = {
-	id: RoleType;
-	permissions: Action[];
-};
+	constructor(private readonly resources: ResourceType) {
+		this.policySchema = this.createPolicySchema();
+	}
 
-export type User = {
-	id: string;
-	attributes: Attributes;
-};
+	addPolicies(policies: Policy<ResourceType>[]) {
+		if (this.policies.length > 0) throw new Error('Policies already added');
 
-export type Resource<ResourceType extends string> = {
-	id: string;
-	type: ResourceType;
-	attributes: Attributes;
-};
+		for (const policy of policies) {
+			this.policySchema.parse(policy);
+			this.addPolicy(policy);
+		}
+	}
 
-type Compare = 'user' | 'resource';
+	private addPolicy(policy: Policy<ResourceType>) {
+		this.policies.push(policy);
+	}
 
-type OwnershipCondition = { key: string; operator: OwnershipOperator };
-
-type DynamicKey = `$${string}`;
-type MembershipCondition = {
-	targetKey: string;
-	operator: MembershipOperator;
-	referenceKey: DynamicKey;
-	compareSource: Compare;
-};
-
-type AdvancedConditionGen<
-	O extends Comparator,
-	V extends string | number | boolean | unknown[],
-> = {
-	attributeKey: string;
-	referenceValue: V;
-	operator: O;
-	compareSource?: Compare;
-};
-
-type AdvancedCondition =
-	| AdvancedConditionGen<
-			Extract<Comparator, 'eq' | 'ne'>,
-			string | number | boolean
-	  >
-	| AdvancedConditionGen<
-			Extract<Comparator, 'gt' | 'gte' | 'lt' | 'lte'>,
-			number
-	  >
-	| AdvancedConditionGen<Extract<Comparator, 'in' | 'nin'>, unknown[]>;
-
-type LogicalCondition =
-	| {
-			operator: Extract<LogicalOperator, 'and' | 'or'>;
-			conditions: Condition[];
-	  }
-	| { operator: Extract<LogicalOperator, 'not'>; conditions: Condition };
-
-type Condition =
-	| AdvancedCondition
-	| LogicalCondition
-	| OwnershipCondition
-	| MembershipCondition;
-
-export type Policy<ResourceType extends string> = {
-	action: Action;
-	resource: ResourceType;
-	conditions?: Condition;
-};
-
-export class Auth<ResourceType extends string> {
-	constructor(private readonly policies: Policy<ResourceType>[]) {}
-
-	isAuthorized(user: User, resource: Resource<ResourceType>, action: Action) {
+	isAuthorized(user: User, resource: Resource, action: Action) {
 		const relevantPolicies = this.policies.filter((policy) => {
 			return policy.resource === resource.type && policy.action === action;
 		});
@@ -105,11 +51,7 @@ export class Auth<ResourceType extends string> {
 		return false;
 	}
 
-	private abac(
-		user: User,
-		resource: Resource<ResourceType>,
-		policy: Policy<ResourceType>
-	) {
+	private abac(user: User, resource: Resource, policy: Policy<ResourceType>) {
 		if (!policy.conditions) return true;
 
 		return this.evaluate(user, resource, policy.conditions);
@@ -117,18 +59,18 @@ export class Auth<ResourceType extends string> {
 
 	private evaluate(
 		user: User,
-		resource: Resource<ResourceType>,
+		resource: Resource,
 		condition: Condition
 	): boolean {
 		if ('conditions' in condition) {
 			return this.evaluateLogicalCondition(user, resource, condition);
 		}
 
-		if (condition.operator === ownershipOperator) {
+		if (condition.operator === ownershipOperator.value) {
 			return this.evaluateOwnershipCondition(user, resource, condition);
 		}
 
-		if (condition.operator === membershipOperator) {
+		if (condition.operator === membershipOperator.value) {
 			return this.evaluateMembershipCondition(user, resource, condition);
 		}
 
@@ -137,7 +79,7 @@ export class Auth<ResourceType extends string> {
 
 	private evaluateLogicalCondition(
 		user: User,
-		resource: Resource<ResourceType>,
+		resource: Resource,
 		logicalCondition: LogicalCondition
 	) {
 		switch (logicalCondition.operator) {
@@ -164,19 +106,19 @@ export class Auth<ResourceType extends string> {
 
 	private evaluateOwnershipCondition(
 		user: User,
-		resource: Resource<ResourceType>,
+		resource: Resource,
 		condition: OwnershipCondition
 	) {
-		if (!resource.attributes[condition.key]) {
+		if (!resource.attributes[condition.ownerKey]) {
 			return false;
 		}
 
-		return user.id === resource.attributes[condition.key];
+		return user.id === resource.attributes[condition.ownerKey];
 	}
 
 	private evaluateMembershipCondition(
 		user: User,
-		resource: Resource<ResourceType>,
+		resource: Resource,
 		membershipCondition: MembershipCondition
 	) {
 		const comparisonKey = this.getDynamicKey(membershipCondition.referenceKey);
@@ -197,17 +139,17 @@ export class Auth<ResourceType extends string> {
 		}
 
 		if (!Array.isArray(targetValue)) {
-			throw new InvalidOperandError(targetValue, membershipOperator);
+			throw new InvalidOperandError(targetValue, membershipOperator.value);
 		}
 
 		return targetValue.includes(comparisonValue);
 	}
 
-	private evaluateAdvancedCondition(
+	private evaluateAdvancedCondition<T extends string | number | boolean>(
 		condition: AdvancedCondition,
-		value: unknown
+		value: T
 	) {
-		function isPrimitive(value: unknown) {
+		function isPrimitive(value: T) {
 			return (
 				typeof value === 'string' ||
 				typeof value === 'number' ||
@@ -215,7 +157,7 @@ export class Auth<ResourceType extends string> {
 			);
 		}
 
-		function validateValue(check: boolean, operator: string, value: unknown) {
+		function validateValue(check: boolean, operator: string, value: T) {
 			if (!check) {
 				throw new InvalidOperandError(value, operator);
 			}
@@ -225,11 +167,10 @@ export class Auth<ResourceType extends string> {
 			case 'eq':
 			case 'ne': {
 				validateValue(isPrimitive(value), condition.operator, value);
-				const val = value as string | number | boolean;
 				const result =
 					condition.operator === 'eq'
-						? val === condition.referenceValue
-						: val !== condition.referenceValue;
+						? value === condition.referenceValue
+						: value !== condition.referenceValue;
 
 				return result;
 			}
@@ -255,14 +196,19 @@ export class Auth<ResourceType extends string> {
 			case 'in':
 			case 'nin': {
 				validateValue(
-					condition.referenceValue.some((item) => typeof item === typeof value),
+					(typeof value === 'string' || typeof value === 'number') &&
+						condition.referenceValue.some(
+							(item) => typeof item === typeof value
+						),
 					condition.operator,
 					value
 				);
 				const result =
 					condition.operator === 'in'
-						? condition.referenceValue.includes(value)
-						: !condition.referenceValue.includes(value);
+						? // @ts-ignore
+							condition.referenceValue.includes(value)
+						: // @ts-ignore
+							!condition.referenceValue.includes(value);
 
 				return result;
 			}
@@ -271,7 +217,7 @@ export class Auth<ResourceType extends string> {
 
 	private handleComparisonForAdvancedCondition(
 		user: User,
-		resource: Resource<ResourceType>,
+		resource: Resource,
 		advancedCondition: AdvancedCondition
 	) {
 		const key = advancedCondition.attributeKey;
@@ -311,8 +257,17 @@ export class Auth<ResourceType extends string> {
 		return key;
 	}
 
-	// this can later be replaced with zod
-	// private validatePolicies(policies: Policy<ResourceType>[]);
+	private createPolicySchema() {
+		const resourceSchema = z.enum(this.resources);
+
+		return z
+			.object({
+				action: actions,
+				resource: resourceSchema,
+				conditions: z.optional(conditionSchema),
+			})
+			.strict();
+	}
 }
 
 class InvalidOperandError extends Error {

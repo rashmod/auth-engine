@@ -1,7 +1,5 @@
 import { z } from 'zod';
 
-import { Auth } from './engine';
-
 export const attributeSchema = z.record(
 	z.union([z.string(), z.number(), z.boolean()])
 );
@@ -138,8 +136,6 @@ export function createPolicy<T extends readonly [string, ...string[]]>(
 		})
 		.strict();
 }
-
-export type inferPolicy<T> = T extends z.ZodType<infer U> ? U : never;
 
 export type Policy<T extends readonly [string, ...string[]]> = z.infer<
 	ReturnType<typeof createPolicy<T>>
