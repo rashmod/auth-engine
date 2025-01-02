@@ -3,19 +3,19 @@ import { z } from 'zod';
 import {
 	Attributes,
 	actions,
+	attributeSchema,
 	conditionSchema,
-	generateResouceSchema,
 } from '@/schema';
 
 export class PolicyGenerator<T extends readonly [string, ...string[]]> {
-	private resourceSchema: ReturnType<typeof generateResouceSchema<T>>;
+	private resourceSchema: z.ZodSchema<Resource<T>>;
 	private readonly policySchema: z.ZodSchema<Policy<T>>;
 	private readonly policies: Policy<T>[] = [];
 
 	constructor(private readonly resources: T) {
 		this.resources = resources;
 		this.policySchema = this.createPolicy();
-		this.resourceSchema = generateResouceSchema(resources);
+		this.resourceSchema = this.generateResouceSchema();
 	}
 
 	addPolicy(policy: Policy<T>) {
@@ -46,13 +46,21 @@ export class PolicyGenerator<T extends readonly [string, ...string[]]> {
 	}
 
 	private createPolicy() {
-		const resourceSchema = z.enum(this.resources);
-
 		return z
 			.object({
 				action: actions,
-				resource: resourceSchema,
+				resource: z.enum(this.resources),
 				conditions: z.optional(conditionSchema),
+			})
+			.strict();
+	}
+
+	private generateResouceSchema() {
+		return z
+			.object({
+				id: z.string(),
+				type: z.enum(this.resources),
+				attributes: attributeSchema,
 			})
 			.strict();
 	}
@@ -60,4 +68,8 @@ export class PolicyGenerator<T extends readonly [string, ...string[]]> {
 
 export type Policy<T extends readonly [string, ...string[]]> = z.infer<
 	ReturnType<PolicyGenerator<T>['createPolicy']>
+>;
+
+export type Resource<T extends readonly [string, ...string[]]> = z.infer<
+	ReturnType<PolicyGenerator<T>['generateResouceSchema']>
 >;

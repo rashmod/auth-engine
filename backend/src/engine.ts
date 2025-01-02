@@ -1,4 +1,4 @@
-import type { Policy } from '@/policy-generator';
+import type { Policy, Resource } from '@/policy-generator';
 import type {
 	Action,
 	AdvancedCondition,
@@ -7,7 +7,6 @@ import type {
 	LogicalCondition,
 	MembershipCondition,
 	OwnershipCondition,
-	Resource,
 	User,
 } from '@/schema';
 import { membershipOperator, ownershipOperator } from '@/schema';

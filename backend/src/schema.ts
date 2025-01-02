@@ -11,20 +11,6 @@ export const userSchema = z.object({
 });
 export type User = z.infer<typeof userSchema>;
 
-export function generateResouceSchema<T extends readonly [string, ...string[]]>(
-	resources: T
-) {
-	return z.object({
-		id: z.string(),
-		type: z.enum(resources),
-		attributes: attributeSchema,
-	});
-}
-
-export type Resource<T extends readonly [string, ...string[]]> = z.infer<
-	ReturnType<typeof generateResouceSchema<T>>
->;
-
 export const logicalOperators = z.enum(['and', 'or', 'not']);
 export const ownershipOperator = z.literal('owner');
 export const membershipOperator = z.literal('contains');
