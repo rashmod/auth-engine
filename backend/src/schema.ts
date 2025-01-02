@@ -106,13 +106,13 @@ export const logicalConditionSchema: z.ZodType<Condition> = z.union([
 	z
 		.object({
 			operator: z.enum(['and', 'or']),
-			conditions: z.array(z.lazy(() => conditionWithoutLogicSchema)),
+			conditions: z.array(z.lazy(() => conditionSchema)),
 		})
 		.strict(),
 	z
 		.object({
 			operator: z.enum(['not']),
-			conditions: z.lazy(() => conditionWithoutLogicSchema),
+			conditions: z.lazy(() => conditionSchema),
 		})
 		.strict(),
 ]);
@@ -122,21 +122,3 @@ export const conditionSchema = z.union([
 	conditionWithoutLogicSchema,
 	logicalConditionSchema,
 ]);
-
-export function createPolicy<T extends readonly [string, ...string[]]>(
-	resources: T
-) {
-	const resourceSchema = z.enum(resources);
-
-	return z
-		.object({
-			action: actions,
-			resource: resourceSchema,
-			conditions: z.optional(conditionSchema),
-		})
-		.strict();
-}
-
-export type Policy<T extends readonly [string, ...string[]]> = z.infer<
-	ReturnType<typeof createPolicy<T>>
->;

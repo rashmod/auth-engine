@@ -1,6 +1,5 @@
-import { z } from 'zod';
-
-import {
+import type { Policy } from '@/policy-generator';
+import type {
 	Action,
 	AdvancedCondition,
 	Condition,
@@ -8,35 +7,13 @@ import {
 	LogicalCondition,
 	MembershipCondition,
 	OwnershipCondition,
-	Policy,
 	Resource,
 	User,
-	actions,
-	conditionSchema,
-	membershipOperator,
-	ownershipOperator,
 } from '@/schema';
+import { membershipOperator, ownershipOperator } from '@/schema';
 
-export class Auth<ResourceType extends readonly [string, ...string[]]> {
-	private policies: Policy<ResourceType>[] = [];
-	private policySchema: z.ZodSchema<Policy<ResourceType>>;
-
-	constructor(private readonly resources: ResourceType) {
-		this.policySchema = this.createPolicySchema();
-	}
-
-	addPolicies(policies: Policy<ResourceType>[]) {
-		if (this.policies.length > 0) throw new Error('Policies already added');
-
-		for (const policy of policies) {
-			this.policySchema.parse(policy);
-			this.addPolicy(policy);
-		}
-	}
-
-	private addPolicy(policy: Policy<ResourceType>) {
-		this.policies.push(policy);
-	}
+export class Auth<T extends readonly [string, ...string[]]> {
+	constructor(private readonly policies: Policy<T>[]) {}
 
 	isAuthorized(user: User, resource: Resource, action: Action) {
 		const relevantPolicies = this.policies.filter((policy) => {
@@ -51,7 +28,7 @@ export class Auth<ResourceType extends readonly [string, ...string[]]> {
 		return false;
 	}
 
-	private abac(user: User, resource: Resource, policy: Policy<ResourceType>) {
+	private abac(user: User, resource: Resource, policy: Policy<T>) {
 		if (!policy.conditions) return true;
 
 		return this.evaluate(user, resource, policy.conditions);
@@ -255,18 +232,6 @@ export class Auth<ResourceType extends readonly [string, ...string[]]> {
 			throw new Error(`Invalid dynamic key format: ${str}`);
 		}
 		return key;
-	}
-
-	private createPolicySchema() {
-		const resourceSchema = z.enum(this.resources);
-
-		return z
-			.object({
-				action: actions,
-				resource: resourceSchema,
-				conditions: z.optional(conditionSchema),
-			})
-			.strict();
 	}
 }
 
