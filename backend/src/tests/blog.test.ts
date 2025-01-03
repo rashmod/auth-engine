@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import { Auth } from '@/engine';
 import { PolicyManager } from '@/policy-generator';
-import { User } from '@/schema';
 
 /*
  * basic blog app
@@ -12,7 +11,7 @@ import { User } from '@/schema';
  */
 
 describe('Basic blog app', () => {
-	const resources = ['blog'] as const;
+	const resources = ['user', 'blog'] as const;
 
 	// is the check for authenticated user necessary for when
 	// updating and deleting a blog when we are already checking for ownership
@@ -26,7 +25,7 @@ describe('Basic blog app', () => {
 				operator: 'eq',
 				attributeKey: 'isAuthenticated',
 				referenceValue: true,
-				compareSource: 'user',
+				compareSource: 'subject',
 			},
 		},
 		{
@@ -44,7 +43,7 @@ describe('Basic blog app', () => {
 						operator: 'eq',
 						attributeKey: 'isAuthenticated',
 						referenceValue: true,
-						compareSource: 'user',
+						compareSource: 'subject',
 					},
 				],
 			},
@@ -60,7 +59,7 @@ describe('Basic blog app', () => {
 						operator: 'eq',
 						attributeKey: 'isAuthenticated',
 						referenceValue: true,
-						compareSource: 'user',
+						compareSource: 'subject',
 					},
 				],
 			},
@@ -71,20 +70,23 @@ describe('Basic blog app', () => {
 
 	const auth = new Auth(policies);
 
-	const user: User = {
+	const user = policyGenerator.createResource({
 		id: 'user1',
+		type: 'user',
 		attributes: { isAuthenticated: true, id: 'user1' },
-	};
+	});
 
-	const notAuthenticatedUser: User = {
+	const notAuthenticatedUser = policyGenerator.createResource({
 		id: 'user2',
+		type: 'user',
 		attributes: {},
-	};
+	});
 
-	const authenticatedUser: User = {
+	const authenticatedUser = policyGenerator.createResource({
 		id: 'user3',
+		type: 'user',
 		attributes: { isAuthenticated: true },
-	};
+	});
 
 	const blog = policyGenerator.createResource({
 		id: 'blog1',

@@ -2,11 +2,9 @@ import { z } from 'zod';
 
 import {
 	Attributes,
-	User,
 	actions,
 	attributeSchema,
 	conditionSchema,
-	userSchema,
 } from '@/schema';
 
 export class PolicyManager<T extends readonly [string, ...string[]]> {
@@ -41,10 +39,6 @@ export class PolicyManager<T extends readonly [string, ...string[]]> {
 		attributes: Attributes;
 	}) {
 		return this.resourceSchema.parse(resource);
-	}
-
-	createUser(user: User) {
-		return userSchema.parse(user);
 	}
 
 	private validatePolicy(policy: Policy<T>) {

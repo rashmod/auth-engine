@@ -12,38 +12,23 @@ const primitive = z.union([
 export const attributeSchema = z.record(primitive);
 export type Attributes = z.infer<typeof attributeSchema>;
 
-export const userSchema = z.object({
-	id: z.string(),
-	attributes: attributeSchema,
-});
-export type User = z.infer<typeof userSchema>;
-
-export const logicalOperators = z.enum(['and', 'or', 'not']);
+const logicalOperators = z.enum(['and', 'or', 'not']);
 export const ownershipOperator = z.literal('owner');
 export const membershipOperator = z.literal('contains');
-export const comparators = z.enum([
-	'eq',
-	'ne',
-	'gt',
-	'gte',
-	'lt',
-	'lte',
-	'in',
-	'nin',
-]);
+const comparators = z.enum(['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'in', 'nin']);
 
-export type OwnershipOperator = z.infer<typeof ownershipOperator>;
-export type MembershipOperator = z.infer<typeof membershipOperator>;
-export type LogicalOperator = z.infer<typeof logicalOperators>;
-export type Comparator = z.infer<typeof comparators>;
+type OwnershipOperator = z.infer<typeof ownershipOperator>;
+type MembershipOperator = z.infer<typeof membershipOperator>;
+type LogicalOperator = z.infer<typeof logicalOperators>;
+type Comparator = z.infer<typeof comparators>;
 
 export const actions = z.enum(['read', 'create', 'update', 'delete']);
 export type Action = z.infer<typeof actions>;
 
-export const compareSource = z.enum(['user', 'resource']);
-export type CompareSource = z.infer<typeof compareSource>;
+const compareSource = z.enum(['subject', 'resource']);
+type CompareSource = z.infer<typeof compareSource>;
 
-export const advancedConditionSchema = z.union([
+const advancedConditionSchema = z.union([
 	z
 		.object({
 			attributeKey: z.string(),
@@ -71,7 +56,7 @@ export const advancedConditionSchema = z.union([
 ]);
 export type AdvancedCondition = z.infer<typeof advancedConditionSchema>;
 
-export const ownershipConditionSchema = z
+const ownershipConditionSchema = z
 	.object({
 		operator: ownershipOperator,
 		ownerKey: z.string(), // key in user
@@ -80,9 +65,9 @@ export const ownershipConditionSchema = z
 	.strict();
 export type OwnershipCondition = z.infer<typeof ownershipConditionSchema>;
 
-export const dynamicKey = z.string().min(2).regex(/^\$.+/);
+const dynamicKey = z.string().min(2).regex(/^\$.+/);
 export type DynamicKey = z.infer<typeof dynamicKey>;
-export const membershipConditionSchema = z
+const membershipConditionSchema = z
 	.object({
 		operator: membershipOperator,
 		collectionKey: dynamicKey, // key of collection
@@ -92,7 +77,7 @@ export const membershipConditionSchema = z
 	.strict();
 export type MembershipCondition = z.infer<typeof membershipConditionSchema>;
 
-export const conditionWithoutLogicSchema = z.union([
+const conditionWithoutLogicSchema = z.union([
 	advancedConditionSchema,
 	ownershipConditionSchema,
 	membershipConditionSchema,
@@ -102,7 +87,7 @@ export type Condition =
 	| { operator: 'and' | 'or'; conditions: Condition[] }
 	| { operator: 'not'; conditions: Condition };
 
-export const logicalConditionSchema: z.ZodType<Condition> = z.union([
+const logicalConditionSchema: z.ZodType<Condition> = z.union([
 	z
 		.object({
 			operator: z.enum(['and', 'or']),

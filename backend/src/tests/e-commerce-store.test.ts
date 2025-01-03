@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import { Auth } from '@/engine';
 import { PolicyManager } from '@/policy-generator';
-import { User } from '@/schema';
 
 /*
  * basic e-commerce app
@@ -13,29 +12,33 @@ import { User } from '@/schema';
  */
 
 describe('Basic e-commerce app', () => {
-	const resources = ['product', 'order'] as const;
+	const resources = ['user', 'product', 'order'] as const;
 
 	const policyGenerator = new PolicyManager(resources);
 
-	const authenticatedUser: User = {
+	const authenticatedUser = policyGenerator.createResource({
 		id: 'user1',
+		type: 'user',
 		attributes: { isAuthenticated: true, id: 'user1' },
-	};
+	});
 
-	const unauthenticatedUser: User = {
+	const unauthenticatedUser = policyGenerator.createResource({
 		id: 'user2',
+		type: 'user',
 		attributes: { id: 'user2' },
-	};
+	});
 
-	const authenticatedAdmin: User = {
+	const authenticatedAdmin = policyGenerator.createResource({
 		id: 'admin1',
+		type: 'user',
 		attributes: { isAuthenticated: true, role: 'admin' },
-	};
+	});
 
-	const unauthenticatedAdmin: User = {
+	const unauthenticatedAdmin = policyGenerator.createResource({
 		id: 'admin2',
+		type: 'user',
 		attributes: { role: 'admin' },
-	};
+	});
 
 	const product = policyGenerator.createResource({
 		id: 'product1',
@@ -67,13 +70,13 @@ describe('Basic e-commerce app', () => {
 						operator: 'eq',
 						attributeKey: 'isAuthenticated',
 						referenceValue: true,
-						compareSource: 'user',
+						compareSource: 'subject',
 					},
 					{
 						operator: 'eq',
 						attributeKey: 'role',
 						referenceValue: 'admin',
-						compareSource: 'user',
+						compareSource: 'subject',
 					},
 				],
 			},
@@ -88,13 +91,13 @@ describe('Basic e-commerce app', () => {
 						operator: 'eq',
 						attributeKey: 'isAuthenticated',
 						referenceValue: true,
-						compareSource: 'user',
+						compareSource: 'subject',
 					},
 					{
 						operator: 'eq',
 						attributeKey: 'role',
 						referenceValue: 'admin',
-						compareSource: 'user',
+						compareSource: 'subject',
 					},
 				],
 			},
@@ -109,13 +112,13 @@ describe('Basic e-commerce app', () => {
 						operator: 'eq',
 						attributeKey: 'isAuthenticated',
 						referenceValue: true,
-						compareSource: 'user',
+						compareSource: 'subject',
 					},
 					{
 						operator: 'eq',
 						attributeKey: 'role',
 						referenceValue: 'admin',
-						compareSource: 'user',
+						compareSource: 'subject',
 					},
 				],
 			},
@@ -127,7 +130,7 @@ describe('Basic e-commerce app', () => {
 				operator: 'eq',
 				attributeKey: 'isAuthenticated',
 				referenceValue: true,
-				compareSource: 'user',
+				compareSource: 'subject',
 			},
 		},
 		{
@@ -143,7 +146,7 @@ describe('Basic e-commerce app', () => {
 								operator: 'eq',
 								attributeKey: 'isAuthenticated',
 								referenceValue: true,
-								compareSource: 'user',
+								compareSource: 'subject',
 							},
 							{ operator: 'owner', resourceKey: 'userId', ownerKey: 'id' },
 						],
@@ -155,13 +158,13 @@ describe('Basic e-commerce app', () => {
 								operator: 'eq',
 								attributeKey: 'isAuthenticated',
 								referenceValue: true,
-								compareSource: 'user',
+								compareSource: 'subject',
 							},
 							{
 								operator: 'eq',
 								attributeKey: 'role',
 								referenceValue: 'admin',
-								compareSource: 'user',
+								compareSource: 'subject',
 							},
 						],
 					},
@@ -181,7 +184,7 @@ describe('Basic e-commerce app', () => {
 								operator: 'eq',
 								attributeKey: 'isAuthenticated',
 								referenceValue: true,
-								compareSource: 'user',
+								compareSource: 'subject',
 							},
 							{ operator: 'owner', resourceKey: 'userId', ownerKey: 'id' },
 						],
@@ -193,13 +196,13 @@ describe('Basic e-commerce app', () => {
 								operator: 'eq',
 								attributeKey: 'isAuthenticated',
 								referenceValue: true,
-								compareSource: 'user',
+								compareSource: 'subject',
 							},
 							{
 								operator: 'eq',
 								attributeKey: 'role',
 								referenceValue: 'admin',
-								compareSource: 'user',
+								compareSource: 'subject',
 							},
 						],
 					},

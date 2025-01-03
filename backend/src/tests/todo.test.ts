@@ -2,10 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import { Auth } from '@/engine';
 import { PolicyManager } from '@/policy-generator';
-import { User } from '@/schema';
 
 describe('Basic todo app', () => {
-	const resources = ['todo'] as const;
+	const resources = ['user', 'todo'] as const;
 
 	const policyGenerator = new PolicyManager(resources);
 	policyGenerator.addPolicies([
@@ -16,7 +15,7 @@ describe('Basic todo app', () => {
 				operator: 'in',
 				attributeKey: 'role',
 				referenceValue: ['user', 'admin'],
-				compareSource: 'user',
+				compareSource: 'subject',
 			},
 		},
 		{
@@ -26,7 +25,7 @@ describe('Basic todo app', () => {
 				operator: 'in',
 				attributeKey: 'role',
 				referenceValue: ['user', 'admin'],
-				compareSource: 'user',
+				compareSource: 'subject',
 			},
 		},
 		{
@@ -40,7 +39,7 @@ describe('Basic todo app', () => {
 						operator: 'eq',
 						attributeKey: 'role',
 						referenceValue: 'admin',
-						compareSource: 'user',
+						compareSource: 'subject',
 					},
 				],
 			},
@@ -56,7 +55,7 @@ describe('Basic todo app', () => {
 						operator: 'eq',
 						attributeKey: 'role',
 						referenceValue: 'admin',
-						compareSource: 'user',
+						compareSource: 'subject',
 					},
 				],
 			},
@@ -67,20 +66,23 @@ describe('Basic todo app', () => {
 
 	const auth = new Auth(policies);
 
-	const user: User = {
+	const user = policyGenerator.createResource({
 		id: 'user1',
+		type: 'user',
 		attributes: { role: 'user', id: 'user1' },
-	};
+	});
 
-	const anotherUser: User = {
+	const anotherUser = policyGenerator.createResource({
 		id: 'user2',
+		type: 'user',
 		attributes: { role: 'user' },
-	};
+	});
 
-	const admin: User = {
+	const admin = policyGenerator.createResource({
 		id: 'admin1',
+		type: 'user',
 		attributes: { role: 'admin' },
-	};
+	});
 
 	const todo = policyGenerator.createResource({
 		id: 'todo1',

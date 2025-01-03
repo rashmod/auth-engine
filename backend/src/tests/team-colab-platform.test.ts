@@ -14,7 +14,7 @@ import { PolicyManager } from '@/policy-generator';
  */
 
 describe('Basic team collaboration app', () => {
-	const resources = ['project', 'task', 'file'] as const;
+	const resources = ['user', 'project', 'task', 'file'] as const;
 
 	const policyGenerator = new PolicyManager(resources);
 
@@ -29,13 +29,13 @@ describe('Basic team collaboration app', () => {
 						operator: 'contains',
 						referenceKey: '$projectId',
 						collectionKey: '$projects',
-						collectionSource: 'user',
+						collectionSource: 'subject',
 					},
 					{
 						operator: 'eq',
 						attributeKey: 'role',
 						referenceValue: 'admin',
-						compareSource: 'user',
+						compareSource: 'subject',
 					},
 				],
 			},
@@ -50,13 +50,13 @@ describe('Basic team collaboration app', () => {
 						operator: 'contains',
 						referenceKey: '$projectId',
 						collectionKey: '$projects',
-						collectionSource: 'user',
+						collectionSource: 'subject',
 					},
 					{
 						operator: 'eq',
 						attributeKey: 'role',
 						referenceValue: 'admin',
-						compareSource: 'user',
+						compareSource: 'subject',
 					},
 				],
 			},
@@ -76,7 +76,7 @@ describe('Basic team collaboration app', () => {
 						operator: 'eq',
 						attributeKey: 'role',
 						referenceValue: 'admin',
-						compareSource: 'user',
+						compareSource: 'subject',
 					},
 					{
 						operator: 'and',
@@ -85,7 +85,7 @@ describe('Basic team collaboration app', () => {
 								operator: 'contains',
 								referenceKey: '$projectId',
 								collectionKey: '$projects',
-								collectionSource: 'user',
+								collectionSource: 'subject',
 							},
 							{
 								operator: 'owner',
@@ -108,7 +108,7 @@ describe('Basic team collaboration app', () => {
 						operator: 'eq',
 						attributeKey: 'role',
 						referenceValue: 'admin',
-						compareSource: 'user',
+						compareSource: 'subject',
 					},
 				],
 			},
@@ -124,40 +124,46 @@ describe('Basic team collaboration app', () => {
 						operator: 'eq',
 						attributeKey: 'role',
 						referenceValue: 'admin',
-						compareSource: 'user',
+						compareSource: 'subject',
 					},
 				],
 			},
 		},
 	]);
 
-	const user1 = policyGenerator.createUser({
+	const user1 = policyGenerator.createResource({
 		id: 'user1',
+		type: 'user',
 		attributes: { id: 'user1', projects: ['project1'] },
 	});
 
-	const user2 = policyGenerator.createUser({
+	const user2 = policyGenerator.createResource({
 		id: 'user2',
+		type: 'user',
 		attributes: { projects: ['project2'] },
 	});
 
-	const user3 = policyGenerator.createUser({
+	const user3 = policyGenerator.createResource({
 		id: 'user3',
+		type: 'user',
 		attributes: { projects: ['project1'] },
 	});
 
-	const manager1 = policyGenerator.createUser({
+	const manager1 = policyGenerator.createResource({
 		id: 'user4',
+		type: 'user',
 		attributes: { id: 'user4', projects: ['project1'] },
 	});
 
-	const manager2 = policyGenerator.createUser({
+	const manager2 = policyGenerator.createResource({
 		id: 'user5',
+		type: 'user',
 		attributes: { id: 'user5', projects: ['project2'] },
 	});
 
-	const admin = policyGenerator.createUser({
+	const admin = policyGenerator.createResource({
 		id: 'admin',
+		type: 'user',
 		attributes: { role: 'admin' },
 	});
 
