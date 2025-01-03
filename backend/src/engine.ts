@@ -14,65 +14,98 @@ import { membershipOperator, ownershipOperator } from '@/schema';
 export class Auth<T extends readonly [string, ...string[]]> {
 	constructor(private readonly policies: Policy<T>[]) {}
 
-	isAuthorized(user: User, resource: Resource<T>, action: Action) {
+	isAuthorized(user: User, resource: Resource<T>, action: Action, log = false) {
 		const relevantPolicies = this.policies.filter((policy) => {
 			return policy.resource === resource.type && policy.action === action;
 		});
+		if (log)
+			console.log(
+				'relevantPolicies',
+				JSON.stringify(relevantPolicies, null, 2)
+			);
 
 		for (const policy of relevantPolicies) {
-			const isAuthorized = this.abac(user, resource, policy);
+			const isAuthorized = this.abac(user, resource, policy, log);
+			if (log) console.log('isAuthorized', isAuthorized);
 			if (isAuthorized) return true;
 		}
 
+		if (log) console.log('returning', false, '1');
 		return false;
 	}
 
-	private abac(user: User, resource: Resource<T>, policy: Policy<T>) {
-		if (!policy.conditions) return true;
+	private abac(
+		user: User,
+		resource: Resource<T>,
+		policy: Policy<T>,
+		log = false
+	) {
+		if (!policy.conditions) {
+			if (log) console.log('returning', true, '2');
+			return true;
+		}
 
-		return this.evaluate(user, resource, policy.conditions);
+		return this.evaluate(user, resource, policy.conditions, log);
 	}
 
 	private evaluate(
 		user: User,
 		resource: Resource<T>,
-		condition: Condition
+		condition: Condition,
+		log = false
 	): boolean {
 		if ('conditions' in condition) {
-			return this.evaluateLogicalCondition(user, resource, condition);
+			if (log)
+				console.log('logicalCondition', JSON.stringify(condition, null, 2));
+			return this.evaluateLogicalCondition(user, resource, condition, log);
 		}
 
 		if (condition.operator === ownershipOperator.value) {
-			return this.evaluateOwnershipCondition(user, resource, condition);
+			if (log)
+				console.log('ownershipCondition', JSON.stringify(condition, null, 2));
+			return this.evaluateOwnershipCondition(user, resource, condition, log);
 		}
 
 		if (condition.operator === membershipOperator.value) {
-			return this.evaluateMembershipCondition(user, resource, condition);
+			if (log)
+				console.log('membershipCondition', JSON.stringify(condition, null, 2));
+			return this.evaluateMembershipCondition(user, resource, condition, log);
 		}
 
-		return this.handleComparisonForAdvancedCondition(user, resource, condition);
+		if (log)
+			console.log('advancedCondition', JSON.stringify(condition, null, 2));
+		return this.handleComparisonForAdvancedCondition(
+			user,
+			resource,
+			condition,
+			log
+		);
 	}
 
 	private evaluateLogicalCondition(
 		user: User,
 		resource: Resource<T>,
-		logicalCondition: LogicalCondition
+		logicalCondition: LogicalCondition,
+		log = false
 	) {
 		switch (logicalCondition.operator) {
 			case 'and': {
 				const result = logicalCondition.conditions.every((c) =>
-					this.evaluate(user, resource, c)
+					this.evaluate(user, resource, c, log)
 				);
+				if (log) console.log('returning', result);
 				return result;
 			}
 			case 'or': {
 				const result = logicalCondition.conditions.some((c) =>
-					this.evaluate(user, resource, c)
+					this.evaluate(user, resource, c, log)
 				);
+				if (log) console.log('returning', result);
 				return result;
 			}
 			case 'not': {
-				const result = !this.evaluate(user, resource, logicalCondition);
+				const result = !this.evaluate(user, resource, logicalCondition, log);
+				if (log) console.log('returning', result);
 				return result;
 			}
 			default:
@@ -83,12 +116,19 @@ export class Auth<T extends readonly [string, ...string[]]> {
 	private evaluateOwnershipCondition(
 		user: User,
 		resource: Resource<T>,
-		condition: OwnershipCondition
+		condition: OwnershipCondition,
+		log = false
 	) {
 		const ownerValue = user.attributes[condition.ownerKey];
 		const resourceValue = resource.attributes[condition.resourceKey];
 
+		if (log) {
+			console.log('ownerValue', ownerValue);
+			console.log('resourceValue', resourceValue);
+		}
+
 		if (ownerValue === undefined || resourceValue === undefined) {
+			if (log) console.log('returning', false);
 			return false;
 		}
 		if (Array.isArray(ownerValue)) {
@@ -98,13 +138,15 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			throw new InvalidOperandError(resourceValue, ownershipOperator.value);
 		}
 
+		if (log) console.log('returning', ownerValue === resourceValue);
 		return ownerValue === resourceValue;
 	}
 
 	private evaluateMembershipCondition(
 		user: User,
 		resource: Resource<T>,
-		membershipCondition: MembershipCondition
+		membershipCondition: MembershipCondition,
+		log = false
 	) {
 		const referenceKey = this.getDynamicKey(membershipCondition.referenceKey);
 		const collectionKey = this.getDynamicKey(membershipCondition.collectionKey);
@@ -119,7 +161,16 @@ export class Auth<T extends readonly [string, ...string[]]> {
 				? resource.attributes[collectionKey]
 				: user.attributes[collectionKey];
 
+		if (log) {
+			console.log('collection source', membershipCondition.collectionSource);
+			console.log('referenceKey', referenceKey);
+			console.log('collectionKey', collectionKey);
+			console.log('referenceValue', referenceValue);
+			console.log('collectionValue', collectionValue);
+		}
+
 		if (collectionValue === undefined || referenceValue === undefined) {
+			if (log) console.log('returning', false);
 			return false;
 		}
 
@@ -130,12 +181,18 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			throw new InvalidOperandError(referenceValue, membershipOperator.value);
 		}
 
+		if (log)
+			console.log(
+				'returning',
+				collectionValue.find((v) => v === referenceValue) !== undefined
+			);
 		return collectionValue.find((v) => v === referenceValue) !== undefined;
 	}
 
 	private evaluateAdvancedCondition<T extends string | number | boolean>(
 		condition: AdvancedCondition,
-		value: T
+		value: T,
+		log = false
 	) {
 		function isPrimitive(value: T) {
 			return (
@@ -159,6 +216,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 					condition.operator === 'eq'
 						? value === condition.referenceValue
 						: value !== condition.referenceValue;
+				if (log) console.log('returning', result);
 
 				return result;
 			}
@@ -171,12 +229,16 @@ export class Auth<T extends readonly [string, ...string[]]> {
 				const val = value as number;
 				switch (condition.operator) {
 					case 'gt':
+						if (log) console.log('returning', val > condition.referenceValue);
 						return val > condition.referenceValue;
 					case 'gte':
+						if (log) console.log('returning', val >= condition.referenceValue);
 						return val >= condition.referenceValue;
 					case 'lt':
+						if (log) console.log('returning', val < condition.referenceValue);
 						return val < condition.referenceValue;
 					case 'lte':
+						if (log) console.log('returning', val <= condition.referenceValue);
 						return val <= condition.referenceValue;
 				}
 			}
@@ -194,6 +256,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 				const includes =
 					condition.referenceValue.find((item) => item === value) !== undefined;
 				const result = condition.operator === 'in' ? includes : !includes;
+				if (log) console.log('returning', result);
 
 				return result;
 			}
@@ -203,18 +266,26 @@ export class Auth<T extends readonly [string, ...string[]]> {
 	private handleComparisonForAdvancedCondition(
 		user: User,
 		resource: Resource<T>,
-		advancedCondition: AdvancedCondition
+		advancedCondition: AdvancedCondition,
+		log = false
 	) {
 		const key = advancedCondition.attributeKey;
 
 		const resourceValue = resource.attributes[key];
 		const userValue = user.attributes[key];
 
+		if (log) {
+			console.log('key', key);
+			console.log('resourceValue', resourceValue);
+			console.log('userValue', userValue);
+			console.log('compareSource', advancedCondition.compareSource);
+		}
+
 		if (advancedCondition.compareSource === 'user' && userValue) {
 			if (Array.isArray(userValue)) {
 				throw new InvalidOperandError(userValue, advancedCondition.operator);
 			}
-			return this.evaluateAdvancedCondition(advancedCondition, userValue);
+			return this.evaluateAdvancedCondition(advancedCondition, userValue, log);
 		}
 
 		if (advancedCondition.compareSource === 'resource' && resourceValue) {
@@ -228,6 +299,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		}
 
 		if (resourceValue === undefined || userValue === undefined) {
+			if (log) console.log('returning', false);
 			return false;
 		}
 
@@ -247,6 +319,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			userValue
 		);
 
+		if (log) console.log('returning', resourceEval && userEval);
 		return resourceEval && userEval;
 	}
 
