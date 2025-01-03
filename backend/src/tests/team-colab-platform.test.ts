@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { Auth } from '@/engine';
-import { PolicyGenerator } from '@/policy-generator';
+import { PolicyManager } from '@/policy-generator';
 
 /*
  * team collaboration platform
@@ -16,7 +16,7 @@ import { PolicyGenerator } from '@/policy-generator';
 describe('Basic team collaboration app', () => {
 	const resources = ['project', 'task', 'file'] as const;
 
-	const policyGenerator = new PolicyGenerator(resources);
+	const policyGenerator = new PolicyManager(resources);
 
 	policyGenerator.addPolicies([
 		{

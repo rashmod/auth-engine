@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { Auth } from '@/engine';
-import { PolicyGenerator } from '@/policy-generator';
+import { PolicyManager } from '@/policy-generator';
 import { User } from '@/schema';
 
 /*
@@ -17,7 +17,7 @@ describe('Basic blog app', () => {
 	// is the check for authenticated user necessary for when
 	// updating and deleting a blog when we are already checking for ownership
 
-	const policyGenerator = new PolicyGenerator(resources);
+	const policyGenerator = new PolicyManager(resources);
 	policyGenerator.addPolicies([
 		{
 			action: 'create',

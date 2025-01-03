@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { Auth } from '@/engine';
-import { PolicyGenerator } from '@/policy-generator';
+import { PolicyManager } from '@/policy-generator';
 import { User } from '@/schema';
 
 /*
@@ -15,7 +15,7 @@ import { User } from '@/schema';
 describe('Basic e-commerce app', () => {
 	const resources = ['product', 'order'] as const;
 
-	const policyGenerator = new PolicyGenerator(resources);
+	const policyGenerator = new PolicyManager(resources);
 
 	const authenticatedUser: User = {
 		id: 'user1',

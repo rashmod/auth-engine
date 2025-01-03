@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import { Auth } from '@/engine';
-import { PolicyGenerator } from '@/policy-generator';
+import { PolicyManager } from '@/policy-generator';
 import { User } from '@/schema';
 
 describe('Basic todo app', () => {
 	const resources = ['todo'] as const;
 
-	const policyGenerator = new PolicyGenerator(resources);
+	const policyGenerator = new PolicyManager(resources);
 	policyGenerator.addPolicies([
 		{
 			action: 'create',
