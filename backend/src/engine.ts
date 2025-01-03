@@ -85,11 +85,20 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		resource: Resource<T>,
 		condition: OwnershipCondition
 	) {
-		if (!resource.attributes[condition.ownerKey]) {
+		const ownerValue = user.attributes[condition.ownerKey];
+		const resourceValue = resource.attributes[condition.resourceKey];
+
+		if (ownerValue === undefined || resourceValue === undefined) {
 			return false;
 		}
+		if (Array.isArray(ownerValue)) {
+			throw new InvalidOperandError(ownerValue, ownershipOperator.value);
+		}
+		if (Array.isArray(resourceValue)) {
+			throw new InvalidOperandError(resourceValue, ownershipOperator.value);
+		}
 
-		return user.id === resource.attributes[condition.ownerKey];
+		return ownerValue === resourceValue;
 	}
 
 	private evaluateMembershipCondition(
@@ -97,28 +106,31 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		resource: Resource<T>,
 		membershipCondition: MembershipCondition
 	) {
-		const comparisonKey = this.getDynamicKey(membershipCondition.referenceKey);
-		const targetKey = membershipCondition.targetKey;
+		const referenceKey = this.getDynamicKey(membershipCondition.referenceKey);
+		const collectionKey = this.getDynamicKey(membershipCondition.collectionKey);
 
-		const comparisonValue =
-			membershipCondition.compareSource === 'resource'
-				? user.attributes[comparisonKey]
-				: resource.attributes[targetKey];
+		const referenceValue =
+			membershipCondition.collectionSource === 'resource'
+				? user.attributes[referenceKey]
+				: resource.attributes[referenceKey];
 
-		const targetValue =
-			membershipCondition.compareSource === 'resource'
-				? resource.attributes[targetKey]
-				: user.attributes[targetKey];
+		const collectionValue =
+			membershipCondition.collectionSource === 'resource'
+				? resource.attributes[collectionKey]
+				: user.attributes[collectionKey];
 
-		if (targetValue === undefined || comparisonValue === undefined) {
+		if (collectionValue === undefined || referenceValue === undefined) {
 			return false;
 		}
 
-		if (!Array.isArray(targetValue)) {
-			throw new InvalidOperandError(targetValue, membershipOperator.value);
+		if (!Array.isArray(collectionValue)) {
+			throw new InvalidOperandError(collectionValue, membershipOperator.value);
+		}
+		if (Array.isArray(referenceValue)) {
+			throw new InvalidOperandError(referenceValue, membershipOperator.value);
 		}
 
-		return targetValue.includes(comparisonValue);
+		return collectionValue.find((v) => v === referenceValue) !== undefined;
 	}
 
 	private evaluateAdvancedCondition<T extends string | number | boolean>(
@@ -179,12 +191,9 @@ export class Auth<T extends readonly [string, ...string[]]> {
 					condition.operator,
 					value
 				);
-				const result =
-					condition.operator === 'in'
-						? // @ts-ignore
-							condition.referenceValue.includes(value)
-						: // @ts-ignore
-							!condition.referenceValue.includes(value);
+				const includes =
+					condition.referenceValue.find((item) => item === value) !== undefined;
+				const result = condition.operator === 'in' ? includes : !includes;
 
 				return result;
 			}
@@ -202,15 +211,31 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		const userValue = user.attributes[key];
 
 		if (advancedCondition.compareSource === 'user' && userValue) {
+			if (Array.isArray(userValue)) {
+				throw new InvalidOperandError(userValue, advancedCondition.operator);
+			}
 			return this.evaluateAdvancedCondition(advancedCondition, userValue);
 		}
 
 		if (advancedCondition.compareSource === 'resource' && resourceValue) {
+			if (Array.isArray(resourceValue)) {
+				throw new InvalidOperandError(
+					resourceValue,
+					advancedCondition.operator
+				);
+			}
 			return this.evaluateAdvancedCondition(advancedCondition, resourceValue);
 		}
 
 		if (resourceValue === undefined || userValue === undefined) {
 			return false;
+		}
+
+		if (Array.isArray(resourceValue)) {
+			throw new InvalidOperandError(resourceValue, advancedCondition.operator);
+		}
+		if (Array.isArray(userValue)) {
+			throw new InvalidOperandError(userValue, advancedCondition.operator);
 		}
 
 		const resourceEval = this.evaluateAdvancedCondition(
@@ -226,11 +251,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 	}
 
 	private getDynamicKey(str: DynamicKey) {
-		const key = str.slice(1);
-		if (!key) {
-			throw new Error(`Invalid dynamic key format: ${str}`);
-		}
-		return key;
+		return str.slice(1);
 	}
 }
 

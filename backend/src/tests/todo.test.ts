@@ -35,7 +35,7 @@ describe('Basic todo app', () => {
 			conditions: {
 				operator: 'or',
 				conditions: [
-					{ operator: 'owner', ownerKey: 'ownerId' },
+					{ operator: 'owner', resourceKey: 'ownerId', ownerKey: 'id' },
 					{
 						operator: 'eq',
 						attributeKey: 'role',
@@ -51,7 +51,7 @@ describe('Basic todo app', () => {
 			conditions: {
 				operator: 'or',
 				conditions: [
-					{ operator: 'owner', ownerKey: 'ownerId' },
+					{ operator: 'owner', resourceKey: 'ownerId', ownerKey: 'id' },
 					{
 						operator: 'eq',
 						attributeKey: 'role',
@@ -69,7 +69,7 @@ describe('Basic todo app', () => {
 
 	const user: User = {
 		id: 'user1',
-		attributes: { role: 'user' },
+		attributes: { role: 'user', id: 'user1' },
 	};
 
 	const anotherUser: User = {

@@ -19,12 +19,12 @@ describe('Basic e-commerce app', () => {
 
 	const authenticatedUser: User = {
 		id: 'user1',
-		attributes: { isAuthenticated: true },
+		attributes: { isAuthenticated: true, id: 'user1' },
 	};
 
 	const unauthenticatedUser: User = {
 		id: 'user2',
-		attributes: {},
+		attributes: { id: 'user2' },
 	};
 
 	const authenticatedAdmin: User = {
@@ -145,7 +145,7 @@ describe('Basic e-commerce app', () => {
 								referenceValue: true,
 								compareSource: 'user',
 							},
-							{ operator: 'owner', ownerKey: 'userId' },
+							{ operator: 'owner', resourceKey: 'userId', ownerKey: 'id' },
 						],
 					},
 					{
@@ -183,7 +183,7 @@ describe('Basic e-commerce app', () => {
 								referenceValue: true,
 								compareSource: 'user',
 							},
-							{ operator: 'owner', ownerKey: 'userId' },
+							{ operator: 'owner', resourceKey: 'userId', ownerKey: 'id' },
 						],
 					},
 					{

@@ -39,7 +39,7 @@ describe('Basic blog app', () => {
 			conditions: {
 				operator: 'and',
 				conditions: [
-					{ operator: 'owner', ownerKey: 'authorId' },
+					{ operator: 'owner', resourceKey: 'authorId', ownerKey: 'id' },
 					{
 						operator: 'eq',
 						attributeKey: 'isAuthenticated',
@@ -55,7 +55,7 @@ describe('Basic blog app', () => {
 			conditions: {
 				operator: 'and',
 				conditions: [
-					{ operator: 'owner', ownerKey: 'authorId' },
+					{ operator: 'owner', resourceKey: 'authorId', ownerKey: 'id' },
 					{
 						operator: 'eq',
 						attributeKey: 'isAuthenticated',
@@ -73,7 +73,7 @@ describe('Basic blog app', () => {
 
 	const user: User = {
 		id: 'user1',
-		attributes: { isAuthenticated: true },
+		attributes: { isAuthenticated: true, id: 'user1' },
 	};
 
 	const notAuthenticatedUser: User = {

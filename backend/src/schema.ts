@@ -1,8 +1,15 @@
 import { z } from 'zod';
 
-export const attributeSchema = z.record(
-	z.union([z.string(), z.number(), z.boolean()])
-);
+const primitive = z.union([
+	z.string(),
+	z.number(),
+	z.boolean(),
+	z.string().array(),
+	z.number().array(),
+	z.boolean().array(),
+]);
+
+export const attributeSchema = z.record(primitive);
 export type Attributes = z.infer<typeof attributeSchema>;
 
 export const userSchema = z.object({
@@ -67,7 +74,8 @@ export type AdvancedCondition = z.infer<typeof advancedConditionSchema>;
 export const ownershipConditionSchema = z
 	.object({
 		operator: ownershipOperator,
-		ownerKey: z.string(),
+		ownerKey: z.string(), // key in user
+		resourceKey: z.string(), // key in resource
 	})
 	.strict();
 export type OwnershipCondition = z.infer<typeof ownershipConditionSchema>;
@@ -77,9 +85,9 @@ export type DynamicKey = z.infer<typeof dynamicKey>;
 export const membershipConditionSchema = z
 	.object({
 		operator: membershipOperator,
-		targetKey: dynamicKey,
-		referenceKey: z.string(),
-		compareSource: compareSource,
+		collectionKey: dynamicKey, // key of collection
+		referenceKey: dynamicKey, // key of value to check
+		collectionSource: compareSource,
 	})
 	.strict();
 export type MembershipCondition = z.infer<typeof membershipConditionSchema>;
