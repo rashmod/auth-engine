@@ -33,7 +33,7 @@ describe('Basic team collaboration app', () => {
 					},
 					{
 						operator: 'eq',
-						attributeKey: 'role',
+						attributeKey: '$role',
 						referenceValue: 'admin',
 						compareSource: 'subject',
 					},
@@ -54,7 +54,7 @@ describe('Basic team collaboration app', () => {
 					},
 					{
 						operator: 'eq',
-						attributeKey: 'role',
+						attributeKey: '$role',
 						referenceValue: 'admin',
 						compareSource: 'subject',
 					},
@@ -74,7 +74,7 @@ describe('Basic team collaboration app', () => {
 					},
 					{
 						operator: 'eq',
-						attributeKey: 'role',
+						attributeKey: '$role',
 						referenceValue: 'admin',
 						compareSource: 'subject',
 					},
@@ -106,7 +106,7 @@ describe('Basic team collaboration app', () => {
 					{ operator: 'owner', ownerKey: 'id', resourceKey: 'manager' },
 					{
 						operator: 'eq',
-						attributeKey: 'role',
+						attributeKey: '$role',
 						referenceValue: 'admin',
 						compareSource: 'subject',
 					},
@@ -122,7 +122,7 @@ describe('Basic team collaboration app', () => {
 					{ operator: 'owner', ownerKey: 'id', resourceKey: 'manager' },
 					{
 						operator: 'eq',
-						attributeKey: 'role',
+						attributeKey: '$role',
 						referenceValue: 'admin',
 						compareSource: 'subject',
 					},

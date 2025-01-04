@@ -278,7 +278,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		advancedCondition: AdvancedCondition,
 		log = false
 	) {
-		const key = advancedCondition.attributeKey;
+		const key = this.getDynamicKey(advancedCondition.attributeKey);
 
 		const resourceValue = resource.attributes[key];
 		const subjectValue = subject.attributes[key];

@@ -17,44 +17,10 @@ export const ownershipOperator = z.literal('owner');
 export const membershipOperator = z.literal('contains');
 const comparators = z.enum(['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'in', 'nin']);
 
-type OwnershipOperator = z.infer<typeof ownershipOperator>;
-type MembershipOperator = z.infer<typeof membershipOperator>;
-type LogicalOperator = z.infer<typeof logicalOperators>;
-type Comparator = z.infer<typeof comparators>;
-
 export const actions = z.enum(['read', 'create', 'update', 'delete']);
 export type Action = z.infer<typeof actions>;
 
 const compareSource = z.enum(['subject', 'resource']);
-type CompareSource = z.infer<typeof compareSource>;
-
-const advancedConditionSchema = z.union([
-	z
-		.object({
-			attributeKey: z.string(),
-			referenceValue: z.union([z.string(), z.number(), z.boolean()]),
-			operator: z.enum(['eq', 'ne']),
-			compareSource: compareSource.optional(),
-		})
-		.strict(),
-	z
-		.object({
-			attributeKey: z.string(),
-			referenceValue: z.number(),
-			operator: z.enum(['gt', 'lt', 'gte', 'lte']),
-			compareSource: compareSource.optional(),
-		})
-		.strict(),
-	z
-		.object({
-			attributeKey: z.string(),
-			referenceValue: z.union([z.string().array(), z.number().array()]), // add other types
-			operator: z.enum(['in', 'nin']),
-			compareSource: compareSource.optional(),
-		})
-		.strict(),
-]);
-export type AdvancedCondition = z.infer<typeof advancedConditionSchema>;
 
 const ownershipConditionSchema = z
 	.object({
@@ -76,6 +42,34 @@ const membershipConditionSchema = z
 	})
 	.strict();
 export type MembershipCondition = z.infer<typeof membershipConditionSchema>;
+
+const advancedConditionSchema = z.union([
+	z
+		.object({
+			attributeKey: dynamicKey,
+			referenceValue: z.union([z.string(), z.number(), z.boolean()]),
+			operator: z.enum(['eq', 'ne']),
+			compareSource: compareSource.optional(),
+		})
+		.strict(),
+	z
+		.object({
+			attributeKey: dynamicKey,
+			referenceValue: z.number(),
+			operator: z.enum(['gt', 'lt', 'gte', 'lte']),
+			compareSource: compareSource.optional(),
+		})
+		.strict(),
+	z
+		.object({
+			attributeKey: dynamicKey,
+			referenceValue: z.union([z.string().array(), z.number().array()]), // add other types
+			operator: z.enum(['in', 'nin']),
+			compareSource: compareSource.optional(),
+		})
+		.strict(),
+]);
+export type AdvancedCondition = z.infer<typeof advancedConditionSchema>;
 
 const conditionWithoutLogicSchema = z.union([
 	advancedConditionSchema,

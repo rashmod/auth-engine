@@ -68,13 +68,13 @@ describe('Basic e-commerce app', () => {
 				conditions: [
 					{
 						operator: 'eq',
-						attributeKey: 'isAuthenticated',
+						attributeKey: '$isAuthenticated',
 						referenceValue: true,
 						compareSource: 'subject',
 					},
 					{
 						operator: 'eq',
-						attributeKey: 'role',
+						attributeKey: '$role',
 						referenceValue: 'admin',
 						compareSource: 'subject',
 					},
@@ -89,13 +89,13 @@ describe('Basic e-commerce app', () => {
 				conditions: [
 					{
 						operator: 'eq',
-						attributeKey: 'isAuthenticated',
+						attributeKey: '$isAuthenticated',
 						referenceValue: true,
 						compareSource: 'subject',
 					},
 					{
 						operator: 'eq',
-						attributeKey: 'role',
+						attributeKey: '$role',
 						referenceValue: 'admin',
 						compareSource: 'subject',
 					},
@@ -110,13 +110,13 @@ describe('Basic e-commerce app', () => {
 				conditions: [
 					{
 						operator: 'eq',
-						attributeKey: 'isAuthenticated',
+						attributeKey: '$isAuthenticated',
 						referenceValue: true,
 						compareSource: 'subject',
 					},
 					{
 						operator: 'eq',
-						attributeKey: 'role',
+						attributeKey: '$role',
 						referenceValue: 'admin',
 						compareSource: 'subject',
 					},
@@ -128,7 +128,7 @@ describe('Basic e-commerce app', () => {
 			action: 'create',
 			conditions: {
 				operator: 'eq',
-				attributeKey: 'isAuthenticated',
+				attributeKey: '$isAuthenticated',
 				referenceValue: true,
 				compareSource: 'subject',
 			},
@@ -144,7 +144,7 @@ describe('Basic e-commerce app', () => {
 						conditions: [
 							{
 								operator: 'eq',
-								attributeKey: 'isAuthenticated',
+								attributeKey: '$isAuthenticated',
 								referenceValue: true,
 								compareSource: 'subject',
 							},
@@ -156,13 +156,13 @@ describe('Basic e-commerce app', () => {
 						conditions: [
 							{
 								operator: 'eq',
-								attributeKey: 'isAuthenticated',
+								attributeKey: '$isAuthenticated',
 								referenceValue: true,
 								compareSource: 'subject',
 							},
 							{
 								operator: 'eq',
-								attributeKey: 'role',
+								attributeKey: '$role',
 								referenceValue: 'admin',
 								compareSource: 'subject',
 							},
@@ -182,7 +182,7 @@ describe('Basic e-commerce app', () => {
 						conditions: [
 							{
 								operator: 'eq',
-								attributeKey: 'isAuthenticated',
+								attributeKey: '$isAuthenticated',
 								referenceValue: true,
 								compareSource: 'subject',
 							},
@@ -194,13 +194,13 @@ describe('Basic e-commerce app', () => {
 						conditions: [
 							{
 								operator: 'eq',
-								attributeKey: 'isAuthenticated',
+								attributeKey: '$isAuthenticated',
 								referenceValue: true,
 								compareSource: 'subject',
 							},
 							{
 								operator: 'eq',
-								attributeKey: 'role',
+								attributeKey: '$role',
 								referenceValue: 'admin',
 								compareSource: 'subject',
 							},

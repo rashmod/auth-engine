@@ -13,7 +13,7 @@ describe('Basic todo app', () => {
 			resource: 'todo',
 			conditions: {
 				operator: 'in',
-				attributeKey: 'role',
+				attributeKey: '$role',
 				referenceValue: ['user', 'admin'],
 				compareSource: 'subject',
 			},
@@ -23,7 +23,7 @@ describe('Basic todo app', () => {
 			resource: 'todo',
 			conditions: {
 				operator: 'in',
-				attributeKey: 'role',
+				attributeKey: '$role',
 				referenceValue: ['user', 'admin'],
 				compareSource: 'subject',
 			},
@@ -37,7 +37,7 @@ describe('Basic todo app', () => {
 					{ operator: 'owner', resourceKey: 'ownerId', ownerKey: 'id' },
 					{
 						operator: 'eq',
-						attributeKey: 'role',
+						attributeKey: '$role',
 						referenceValue: 'admin',
 						compareSource: 'subject',
 					},
@@ -53,7 +53,7 @@ describe('Basic todo app', () => {
 					{ operator: 'owner', resourceKey: 'ownerId', ownerKey: 'id' },
 					{
 						operator: 'eq',
-						attributeKey: 'role',
+						attributeKey: '$role',
 						referenceValue: 'admin',
 						compareSource: 'subject',
 					},
