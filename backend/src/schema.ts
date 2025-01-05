@@ -51,48 +51,57 @@ const membershipConditionSchema = z
 	.strict();
 export type MembershipCondition = z.infer<typeof membershipConditionSchema>;
 
-const advancedConditionSchema = z.union([
-	z
-		.object({
-			attributeKey: dynamicKey,
-			referenceValue: z.union([z.string(), z.number(), z.boolean()]),
-			operator: comparators.extract(['eq', 'ne']),
-			compareSource: compareSource.optional(),
-		})
-		.strict(),
-	z
-		.object({
-			attributeKey: dynamicKey,
-			referenceValue: z.number(),
-			operator: comparators.extract(['gt', 'lt', 'gte', 'lte']),
-			compareSource: compareSource.optional(),
-		})
-		.strict(),
-	z
-		.object({
-			attributeKey: dynamicKey,
-			referenceValue: z.union([z.string().array(), z.number().array()]), // add other types
-			operator: comparators.extract(['in', 'nin']),
-			compareSource: compareSource.optional(),
-		})
-		.strict(),
-	z
-		.object({
-			subjectKey: dynamicKey,
-			resourceKey: dynamicKey,
-			operator: comparators,
-		})
-		.strict(),
-]);
-export type AdvancedCondition = z.infer<typeof advancedConditionSchema>;
+const equalityConditionSchema = z
+	.object({
+		attributeKey: dynamicKey,
+		referenceValue: z.union([z.string(), z.number(), z.boolean()]),
+		operator: comparators.extract(['eq', 'ne']),
+		compareSource: compareSource.optional(),
+	})
+	.strict();
 
-const conditionWithoutLogicSchema = z.union([
-	advancedConditionSchema,
+const numericConditionSchema = z
+	.object({
+		attributeKey: dynamicKey,
+		referenceValue: z.number(),
+		operator: comparators.extract(['gt', 'lt', 'gte', 'lte']),
+		compareSource: compareSource.optional(),
+	})
+	.strict();
+
+const collectionConditionSchema = z
+	.object({
+		attributeKey: dynamicKey,
+		referenceValue: z.union([z.string().array(), z.number().array()]), // add other types
+		operator: comparators.extract(['in', 'nin']),
+		compareSource: compareSource.optional(),
+	})
+	.strict();
+
+const entityKeyConditionSchema = z
+	.object({
+		subjectKey: dynamicKey,
+		resourceKey: dynamicKey,
+		operator: comparators,
+	})
+	.strict();
+export type EntityKeyCondition = z.infer<typeof entityKeyConditionSchema>;
+
+const attributeConditionSchema = z.union([
+	equalityConditionSchema,
+	numericConditionSchema,
+	collectionConditionSchema,
+]);
+export type AttributeCondition = z.infer<typeof attributeConditionSchema>;
+
+const baseConditionSchema = z.union([
+	attributeConditionSchema,
+	entityKeyConditionSchema,
 	ownershipConditionSchema,
 	membershipConditionSchema,
 ]);
 export type Condition =
-	| z.infer<typeof conditionWithoutLogicSchema>
+	| z.infer<typeof baseConditionSchema>
 	| {
 			operator: Extract<LogicalOperator, 'and' | 'or'>;
 			conditions: Condition[];
@@ -115,4 +124,4 @@ const logicalConditionSchema: z.ZodType<Condition> = z.union([
 ]);
 export type LogicalCondition = z.infer<typeof logicalConditionSchema>;
 
-export const conditionSchema = z.union([conditionWithoutLogicSchema, logicalConditionSchema]);
+export const conditionSchema = z.union([baseConditionSchema, logicalConditionSchema]);

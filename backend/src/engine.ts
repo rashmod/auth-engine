@@ -1,9 +1,10 @@
 import type { Policy, Resource } from '@/policy-generator';
 import type {
 	Action,
-	AdvancedCondition,
+	AttributeCondition,
 	Condition,
 	DynamicKey,
+	EntityKeyCondition,
 	LogicalCondition,
 	MembershipCondition,
 	NumericOperators,
@@ -64,8 +65,13 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			return this.evaluateMembershipCondition(subject, resource, condition, log);
 		}
 
-		this.log('Advanced Condition', condition, log);
-		return this.handleComparisonForAdvancedCondition(subject, resource, condition, log);
+		if ('attributeKey' in condition) {
+			this.log('Advanced Condition', condition, log);
+			return this.handleComparisonForAdvancedCondition(subject, resource, condition, log);
+		}
+
+		this.log('Entity Key Condition', condition, log);
+		return this.evaluateEntityKeyCondition(subject, resource, condition, log);
 	}
 
 	private evaluateLogicalCondition(
@@ -156,7 +162,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 	}
 
 	private evaluateAdvancedCondition<T extends string | number | boolean>(
-		condition: Extract<AdvancedCondition, { attributeKey: string }>,
+		condition: Extract<AttributeCondition, { attributeKey: string }>,
 		value: T,
 		log = false
 	) {
@@ -207,53 +213,14 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		}
 	}
 
-	private handleComparisonForAdvancedCondition(
+	private evaluateEntityKeyCondition(
 		subject: Resource<T>,
 		resource: Resource<T>,
-		advancedCondition: AdvancedCondition,
+		condition: EntityKeyCondition,
 		log = false
 	) {
-		if ('attributeKey' in advancedCondition) {
-			const key = this.getDynamicKey(advancedCondition.attributeKey);
-
-			const resourceValue = resource.attributes[key];
-			const subjectValue = subject.attributes[key];
-
-			this.log('Advanced Condition Values', { subjectValue, resourceValue }, log);
-
-			if (advancedCondition.compareSource === 'subject' && subjectValue) {
-				if (Array.isArray(subjectValue)) {
-					throw new InvalidOperandError(subjectValue, advancedCondition.operator);
-				}
-				return this.evaluateAdvancedCondition(advancedCondition, subjectValue, log);
-			}
-
-			if (advancedCondition.compareSource === 'resource' && resourceValue) {
-				if (Array.isArray(resourceValue)) {
-					throw new InvalidOperandError(resourceValue, advancedCondition.operator);
-				}
-				return this.evaluateAdvancedCondition(advancedCondition, resourceValue);
-			}
-
-			if (resourceValue === undefined || subjectValue === undefined) {
-				return false;
-			}
-
-			if (Array.isArray(resourceValue)) {
-				throw new InvalidOperandError(resourceValue, advancedCondition.operator);
-			}
-			if (Array.isArray(subjectValue)) {
-				throw new InvalidOperandError(subjectValue, advancedCondition.operator);
-			}
-
-			const resourceEval = this.evaluateAdvancedCondition(advancedCondition, resourceValue);
-			const subjectEval = this.evaluateAdvancedCondition(advancedCondition, subjectValue);
-
-			return resourceEval && subjectEval;
-		}
-
-		const subjectKey = this.getDynamicKey(advancedCondition.subjectKey);
-		const resourceKey = this.getDynamicKey(advancedCondition.resourceKey);
+		const subjectKey = this.getDynamicKey(condition.subjectKey);
+		const resourceKey = this.getDynamicKey(condition.resourceKey);
 
 		const subjectValue = subject.attributes[subjectKey];
 		const resourceValue = resource.attributes[resourceKey];
@@ -263,20 +230,20 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		}
 
 		if (Array.isArray(subjectValue)) {
-			throw new InvalidOperandError(subjectValue, advancedCondition.operator);
+			throw new InvalidOperandError(subjectValue, condition.operator);
 		}
 
 		if (Array.isArray(resourceValue)) {
-			const parsed = collectionOperators.safeParse(advancedCondition.operator);
+			const parsed = collectionOperators.safeParse(condition.operator);
 
 			if (!parsed.success) {
-				throw new InvalidOperandError(resourceValue, advancedCondition.operator);
+				throw new InvalidOperandError(resourceValue, condition.operator);
 			}
 
 			const isTypeSame = resourceValue.every((item) => typeof item === typeof subjectValue);
 			// TODO should it be an error or should we just return false
 			if (!isTypeSame) {
-				throw new InvalidOperandError(subjectValue, advancedCondition.operator);
+				throw new InvalidOperandError(subjectValue, condition.operator);
 			}
 
 			return this.evaluateAdvancedCondition(
@@ -290,10 +257,10 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			);
 		} else {
 			if (typeof subjectValue !== typeof resourceValue) {
-				throw new InvalidOperandError(subjectValue, advancedCondition.operator);
+				throw new InvalidOperandError(subjectValue, condition.operator);
 			}
 
-			const equalityParsed = equalityOperators.safeParse(advancedCondition.operator);
+			const equalityParsed = equalityOperators.safeParse(condition.operator);
 			if (equalityParsed.success) {
 				return this.evaluateAdvancedCondition(
 					{
@@ -305,13 +272,13 @@ export class Auth<T extends readonly [string, ...string[]]> {
 				);
 			}
 
-			const numericParsed = numericOperators.safeParse(advancedCondition.operator);
+			const numericParsed = numericOperators.safeParse(condition.operator);
 			if (numericParsed.success) {
 				if (typeof subjectValue !== 'number') {
-					throw new InvalidOperandError(subjectValue, advancedCondition.operator);
+					throw new InvalidOperandError(subjectValue, condition.operator);
 				}
 				if (typeof resourceValue !== 'number') {
-					throw new InvalidOperandError(resourceValue, advancedCondition.operator);
+					throw new InvalidOperandError(resourceValue, condition.operator);
 				}
 
 				return this.evaluateAdvancedCondition(
@@ -324,8 +291,52 @@ export class Auth<T extends readonly [string, ...string[]]> {
 				);
 			}
 
+			throw new InvalidOperandError(subjectValue, condition.operator);
+		}
+	}
+
+	private handleComparisonForAdvancedCondition(
+		subject: Resource<T>,
+		resource: Resource<T>,
+		advancedCondition: AttributeCondition,
+		log = false
+	) {
+		const key = this.getDynamicKey(advancedCondition.attributeKey);
+
+		const resourceValue = resource.attributes[key];
+		const subjectValue = subject.attributes[key];
+
+		this.log('Advanced Condition Values', { subjectValue, resourceValue }, log);
+
+		if (advancedCondition.compareSource === 'subject' && subjectValue) {
+			if (Array.isArray(subjectValue)) {
+				throw new InvalidOperandError(subjectValue, advancedCondition.operator);
+			}
+			return this.evaluateAdvancedCondition(advancedCondition, subjectValue, log);
+		}
+
+		if (advancedCondition.compareSource === 'resource' && resourceValue) {
+			if (Array.isArray(resourceValue)) {
+				throw new InvalidOperandError(resourceValue, advancedCondition.operator);
+			}
+			return this.evaluateAdvancedCondition(advancedCondition, resourceValue);
+		}
+
+		if (resourceValue === undefined || subjectValue === undefined) {
+			return false;
+		}
+
+		if (Array.isArray(resourceValue)) {
+			throw new InvalidOperandError(resourceValue, advancedCondition.operator);
+		}
+		if (Array.isArray(subjectValue)) {
 			throw new InvalidOperandError(subjectValue, advancedCondition.operator);
 		}
+
+		const resourceEval = this.evaluateAdvancedCondition(advancedCondition, resourceValue);
+		const subjectEval = this.evaluateAdvancedCondition(advancedCondition, subjectValue);
+
+		return resourceEval && subjectEval;
 	}
 
 	private compareNumbers(operator: NumericOperators, left: number, right: number) {
@@ -338,6 +349,8 @@ export class Auth<T extends readonly [string, ...string[]]> {
 				return left < right;
 			case 'lte':
 				return left <= right;
+			default:
+				throw new Error(`Invalid numeric operator: ${operator}`);
 		}
 	}
 
