@@ -103,7 +103,4 @@ const logicalConditionSchema: z.ZodType<Condition> = z.union([
 ]);
 export type LogicalCondition = z.infer<typeof logicalConditionSchema>;
 
-export const conditionSchema = z.union([
-	conditionWithoutLogicSchema,
-	logicalConditionSchema,
-]);
+export const conditionSchema = z.union([conditionWithoutLogicSchema, logicalConditionSchema]);

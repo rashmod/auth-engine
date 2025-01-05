@@ -14,12 +14,7 @@ import { membershipOperator, ownershipOperator } from '@/schema';
 export class Auth<T extends readonly [string, ...string[]]> {
 	constructor(private readonly policies: Policy<T>[]) {}
 
-	isAuthorized(
-		subject: Resource<T>,
-		resource: Resource<T>,
-		action: Action,
-		log = false
-	) {
+	isAuthorized(subject: Resource<T>, resource: Resource<T>, action: Action, log = false) {
 		const relevantPolicies = this.policies.filter((policy) => {
 			return policy.resource === resource.type && policy.action === action;
 		});
@@ -33,12 +28,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		return false;
 	}
 
-	private abac(
-		subject: Resource<T>,
-		resource: Resource<T>,
-		policy: Policy<T>,
-		log = false
-	) {
+	private abac(subject: Resource<T>, resource: Resource<T>, policy: Policy<T>, log = false) {
 		if (!policy.conditions) {
 			this.log('Policy has no conditions, granting access', true, log);
 			return true;
@@ -65,21 +55,11 @@ export class Auth<T extends readonly [string, ...string[]]> {
 
 		if (condition.operator === membershipOperator.value) {
 			this.log('Membership Condition', condition, log);
-			return this.evaluateMembershipCondition(
-				subject,
-				resource,
-				condition,
-				log
-			);
+			return this.evaluateMembershipCondition(subject, resource, condition, log);
 		}
 
 		this.log('Advanced Condition', condition, log);
-		return this.handleComparisonForAdvancedCondition(
-			subject,
-			resource,
-			condition,
-			log
-		);
+		return this.handleComparisonForAdvancedCondition(subject, resource, condition, log);
 	}
 
 	private evaluateLogicalCondition(
@@ -175,11 +155,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		log = false
 	) {
 		function isPrimitive(value: T) {
-			return (
-				typeof value === 'string' ||
-				typeof value === 'number' ||
-				typeof value === 'boolean'
-			);
+			return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
 		}
 
 		function validateValue(check: boolean, operator: string, value: T) {
@@ -206,25 +182,18 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			case 'lte': {
 				validateValue(typeof value === 'number', condition.operator, value);
 				const val = value as number;
-				return this.compareNumbers(
-					condition.operator,
-					val,
-					condition.referenceValue
-				);
+				return this.compareNumbers(condition.operator, val, condition.referenceValue);
 			}
 
 			case 'in':
 			case 'nin': {
 				validateValue(
 					typeof value !== 'boolean' &&
-						condition.referenceValue.some(
-							(item) => typeof item === typeof value
-						),
+						condition.referenceValue.some((item) => typeof item === typeof value),
 					condition.operator,
 					value
 				);
-				const includes =
-					condition.referenceValue.find((item) => item === value) !== undefined;
+				const includes = condition.referenceValue.find((item) => item === value) !== undefined;
 				const result = condition.operator === 'in' ? includes : !includes;
 
 				return result;
@@ -249,19 +218,12 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			if (Array.isArray(subjectValue)) {
 				throw new InvalidOperandError(subjectValue, advancedCondition.operator);
 			}
-			return this.evaluateAdvancedCondition(
-				advancedCondition,
-				subjectValue,
-				log
-			);
+			return this.evaluateAdvancedCondition(advancedCondition, subjectValue, log);
 		}
 
 		if (advancedCondition.compareSource === 'resource' && resourceValue) {
 			if (Array.isArray(resourceValue)) {
-				throw new InvalidOperandError(
-					resourceValue,
-					advancedCondition.operator
-				);
+				throw new InvalidOperandError(resourceValue, advancedCondition.operator);
 			}
 			return this.evaluateAdvancedCondition(advancedCondition, resourceValue);
 		}
@@ -277,23 +239,13 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			throw new InvalidOperandError(subjectValue, advancedCondition.operator);
 		}
 
-		const resourceEval = this.evaluateAdvancedCondition(
-			advancedCondition,
-			resourceValue
-		);
-		const subjectEval = this.evaluateAdvancedCondition(
-			advancedCondition,
-			subjectValue
-		);
+		const resourceEval = this.evaluateAdvancedCondition(advancedCondition, resourceValue);
+		const subjectEval = this.evaluateAdvancedCondition(advancedCondition, subjectValue);
 
 		return resourceEval && subjectEval;
 	}
 
-	private compareNumbers(
-		operator: NumericOperators,
-		left: number,
-		right: number
-	) {
+	private compareNumbers(operator: NumericOperators, left: number, right: number) {
 		switch (operator) {
 			case 'gt':
 				return left > right;

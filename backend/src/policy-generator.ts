@@ -1,11 +1,6 @@
 import { z } from 'zod';
 
-import {
-	Attributes,
-	actions,
-	attributeSchema,
-	conditionSchema,
-} from '@/schema';
+import { Attributes, actions, attributeSchema, conditionSchema } from '@/schema';
 
 export class PolicyManager<T extends readonly [string, ...string[]]> {
 	private readonly resourceSchema: z.ZodSchema<Resource<T>>;
@@ -33,11 +28,7 @@ export class PolicyManager<T extends readonly [string, ...string[]]> {
 		return this.policies;
 	}
 
-	createResource(resource: {
-		id: string;
-		type: T[number];
-		attributes: Attributes;
-	}) {
+	createResource(resource: { id: string; type: T[number]; attributes: Attributes }) {
 		return this.resourceSchema.parse(resource);
 	}
 
