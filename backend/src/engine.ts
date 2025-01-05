@@ -22,19 +22,13 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		const relevantPolicies = this.policies.filter((policy) => {
 			return policy.resource === resource.type && policy.action === action;
 		});
-		if (log)
-			console.log(
-				'relevantPolicies',
-				JSON.stringify(relevantPolicies, null, 2)
-			);
+		this.log('relevantPolicies', relevantPolicies, log);
 
 		for (const policy of relevantPolicies) {
 			const isAuthorized = this.abac(subject, resource, policy, log);
-			if (log) console.log('isAuthorized', isAuthorized);
 			if (isAuthorized) return true;
 		}
 
-		if (log) console.log('returning', false, '1');
 		return false;
 	}
 
@@ -45,7 +39,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		log = false
 	) {
 		if (!policy.conditions) {
-			if (log) console.log('returning', true, '2');
+			this.log('Policy has no conditions, granting access', true, log);
 			return true;
 		}
 
@@ -59,20 +53,17 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		log = false
 	): boolean {
 		if ('conditions' in condition) {
-			if (log)
-				console.log('logicalCondition', JSON.stringify(condition, null, 2));
+			this.log('Logical Condition', condition, log);
 			return this.evaluateLogicalCondition(subject, resource, condition, log);
 		}
 
 		if (condition.operator === ownershipOperator.value) {
-			if (log)
-				console.log('ownershipCondition', JSON.stringify(condition, null, 2));
+			this.log('Ownership Condition', condition, log);
 			return this.evaluateOwnershipCondition(subject, resource, condition, log);
 		}
 
 		if (condition.operator === membershipOperator.value) {
-			if (log)
-				console.log('membershipCondition', JSON.stringify(condition, null, 2));
+			this.log('Membership Condition', condition, log);
 			return this.evaluateMembershipCondition(
 				subject,
 				resource,
@@ -81,8 +72,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			);
 		}
 
-		if (log)
-			console.log('advancedCondition', JSON.stringify(condition, null, 2));
+		this.log('Advanced Condition', condition, log);
 		return this.handleComparisonForAdvancedCondition(
 			subject,
 			resource,
@@ -102,19 +92,16 @@ export class Auth<T extends readonly [string, ...string[]]> {
 				const result = logicalCondition.conditions.every((c) =>
 					this.evaluate(subject, resource, c, log)
 				);
-				if (log) console.log('returning', result);
 				return result;
 			}
 			case 'or': {
 				const result = logicalCondition.conditions.some((c) =>
 					this.evaluate(subject, resource, c, log)
 				);
-				if (log) console.log('returning', result);
 				return result;
 			}
 			case 'not': {
 				const result = !this.evaluate(subject, resource, logicalCondition, log);
-				if (log) console.log('returning', result);
 				return result;
 			}
 			default:
@@ -131,13 +118,9 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		const ownerValue = subject.attributes[condition.ownerKey];
 		const resourceValue = resource.attributes[condition.resourceKey];
 
-		if (log) {
-			console.log('ownerValue', ownerValue);
-			console.log('resourceValue', resourceValue);
-		}
+		this.log('Ownership Values', { ownerValue, resourceValue }, log);
 
 		if (ownerValue === undefined || resourceValue === undefined) {
-			if (log) console.log('returning', false);
 			return false;
 		}
 		if (Array.isArray(ownerValue)) {
@@ -147,7 +130,6 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			throw new InvalidOperandError(resourceValue, ownershipOperator.value);
 		}
 
-		if (log) console.log('returning', ownerValue === resourceValue);
 		return ownerValue === resourceValue;
 	}
 
@@ -170,16 +152,9 @@ export class Auth<T extends readonly [string, ...string[]]> {
 				? resource.attributes[collectionKey]
 				: subject.attributes[collectionKey];
 
-		if (log) {
-			console.log('collection source', membershipCondition.collectionSource);
-			console.log('referenceKey', referenceKey);
-			console.log('collectionKey', collectionKey);
-			console.log('referenceValue', referenceValue);
-			console.log('collectionValue', collectionValue);
-		}
+		this.log('Membership Values', { referenceValue, collectionValue }, log);
 
 		if (collectionValue === undefined || referenceValue === undefined) {
-			if (log) console.log('returning', false);
 			return false;
 		}
 
@@ -190,11 +165,6 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			throw new InvalidOperandError(referenceValue, membershipOperator.value);
 		}
 
-		if (log)
-			console.log(
-				'returning',
-				collectionValue.find((v) => v === referenceValue) !== undefined
-			);
 		return collectionValue.find((v) => v === referenceValue) !== undefined;
 	}
 
@@ -225,7 +195,6 @@ export class Auth<T extends readonly [string, ...string[]]> {
 					condition.operator === 'eq'
 						? value === condition.referenceValue
 						: value !== condition.referenceValue;
-				if (log) console.log('returning', result);
 
 				return result;
 			}
@@ -238,16 +207,12 @@ export class Auth<T extends readonly [string, ...string[]]> {
 				const val = value as number;
 				switch (condition.operator) {
 					case 'gt':
-						if (log) console.log('returning', val > condition.referenceValue);
 						return val > condition.referenceValue;
 					case 'gte':
-						if (log) console.log('returning', val >= condition.referenceValue);
 						return val >= condition.referenceValue;
 					case 'lt':
-						if (log) console.log('returning', val < condition.referenceValue);
 						return val < condition.referenceValue;
 					case 'lte':
-						if (log) console.log('returning', val <= condition.referenceValue);
 						return val <= condition.referenceValue;
 				}
 			}
@@ -265,7 +230,6 @@ export class Auth<T extends readonly [string, ...string[]]> {
 				const includes =
 					condition.referenceValue.find((item) => item === value) !== undefined;
 				const result = condition.operator === 'in' ? includes : !includes;
-				if (log) console.log('returning', result);
 
 				return result;
 			}
@@ -283,12 +247,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		const resourceValue = resource.attributes[key];
 		const subjectValue = subject.attributes[key];
 
-		if (log) {
-			console.log('key', key);
-			console.log('resourceValue', resourceValue);
-			console.log('subjectValue', subjectValue);
-			console.log('compareSource', advancedCondition.compareSource);
-		}
+		this.log('Advanced Condition Values', { subjectValue, resourceValue }, log);
 
 		if (advancedCondition.compareSource === 'subject' && subjectValue) {
 			if (Array.isArray(subjectValue)) {
@@ -312,7 +271,6 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		}
 
 		if (resourceValue === undefined || subjectValue === undefined) {
-			if (log) console.log('returning', false);
 			return false;
 		}
 
@@ -332,12 +290,15 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			subjectValue
 		);
 
-		if (log) console.log('returning', resourceEval && subjectEval);
 		return resourceEval && subjectEval;
 	}
 
 	private getDynamicKey(str: DynamicKey) {
 		return str.slice(1);
+	}
+
+	private log(message: string, data: unknown, log: boolean) {
+		if (log) console.log(message, JSON.stringify(data, null, 2));
 	}
 }
 
