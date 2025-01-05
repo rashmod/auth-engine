@@ -148,7 +148,7 @@ describe('Basic e-commerce app', () => {
 								referenceValue: true,
 								compareSource: 'subject',
 							},
-							{ operator: 'owner', resourceKey: 'userId', ownerKey: 'id' },
+							{ operator: 'eq', subjectKey: '$id', resourceKey: '$userId' },
 						],
 					},
 					{
@@ -186,7 +186,7 @@ describe('Basic e-commerce app', () => {
 								referenceValue: true,
 								compareSource: 'subject',
 							},
-							{ operator: 'owner', resourceKey: 'userId', ownerKey: 'id' },
+							{ operator: 'eq', subjectKey: '$id', resourceKey: '$userId' },
 						],
 					},
 					{

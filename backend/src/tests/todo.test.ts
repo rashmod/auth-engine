@@ -34,7 +34,7 @@ describe('Basic todo app', () => {
 			conditions: {
 				operator: 'or',
 				conditions: [
-					{ operator: 'owner', resourceKey: 'ownerId', ownerKey: 'id' },
+					{ operator: 'eq', subjectKey: '$id', resourceKey: '$ownerId' },
 					{
 						operator: 'eq',
 						attributeKey: '$role',
@@ -50,7 +50,7 @@ describe('Basic todo app', () => {
 			conditions: {
 				operator: 'or',
 				conditions: [
-					{ operator: 'owner', resourceKey: 'ownerId', ownerKey: 'id' },
+					{ operator: 'eq', subjectKey: '$id', resourceKey: '$ownerId' },
 					{
 						operator: 'eq',
 						attributeKey: '$role',

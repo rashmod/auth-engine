@@ -8,14 +8,12 @@ import type {
 	LogicalCondition,
 	MembershipCondition,
 	NumericOperators,
-	OwnershipCondition,
 } from '@/schema';
 import {
 	collectionOperators,
 	equalityOperators,
 	membershipOperator,
 	numericOperators,
-	ownershipOperator,
 } from '@/schema';
 
 export class Auth<T extends readonly [string, ...string[]]> {
@@ -53,11 +51,6 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		if ('conditions' in condition) {
 			this.log('Logical Condition', condition, log);
 			return this.evaluateLogicalCondition(subject, resource, condition, log);
-		}
-
-		if (condition.operator === ownershipOperator.value) {
-			this.log('Ownership Condition', condition, log);
-			return this.evaluateOwnershipCondition(subject, resource, condition, log);
 		}
 
 		if (condition.operator === membershipOperator.value) {
@@ -100,30 +93,6 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			default:
 				throw new Error('Invalid logical condition');
 		}
-	}
-
-	private evaluateOwnershipCondition(
-		subject: Resource<T>,
-		resource: Resource<T>,
-		condition: OwnershipCondition,
-		log = false
-	) {
-		const ownerValue = subject.attributes[condition.ownerKey];
-		const resourceValue = resource.attributes[condition.resourceKey];
-
-		this.log('Ownership Values', { ownerValue, resourceValue }, log);
-
-		if (ownerValue === undefined || resourceValue === undefined) {
-			return false;
-		}
-		if (Array.isArray(ownerValue)) {
-			throw new InvalidOperandError(ownerValue, ownershipOperator.value);
-		}
-		if (Array.isArray(resourceValue)) {
-			throw new InvalidOperandError(resourceValue, ownershipOperator.value);
-		}
-
-		return ownerValue === resourceValue;
 	}
 
 	private evaluateMembershipCondition(

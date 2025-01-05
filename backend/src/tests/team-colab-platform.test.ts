@@ -68,9 +68,9 @@ describe('Basic team collaboration app', () => {
 				operator: 'or',
 				conditions: [
 					{
-						operator: 'owner',
-						ownerKey: 'id',
-						resourceKey: 'assignee',
+						operator: 'eq',
+						subjectKey: '$id',
+						resourceKey: '$assignee',
 					},
 					{
 						operator: 'eq',
@@ -88,9 +88,9 @@ describe('Basic team collaboration app', () => {
 								collectionSource: 'subject',
 							},
 							{
-								operator: 'owner',
-								ownerKey: 'id',
-								resourceKey: 'manager',
+								operator: 'eq',
+								subjectKey: '$id',
+								resourceKey: '$manager',
 							},
 						],
 					},
@@ -103,7 +103,11 @@ describe('Basic team collaboration app', () => {
 			conditions: {
 				operator: 'or',
 				conditions: [
-					{ operator: 'owner', ownerKey: 'id', resourceKey: 'manager' },
+					{
+						operator: 'eq',
+						subjectKey: '$id',
+						resourceKey: '$manager',
+					},
 					{
 						operator: 'eq',
 						attributeKey: '$role',
@@ -119,7 +123,11 @@ describe('Basic team collaboration app', () => {
 			conditions: {
 				operator: 'or',
 				conditions: [
-					{ operator: 'owner', ownerKey: 'id', resourceKey: 'manager' },
+					{
+						operator: 'eq',
+						subjectKey: '$id',
+						resourceKey: '$manager',
+					},
 					{
 						operator: 'eq',
 						attributeKey: '$role',

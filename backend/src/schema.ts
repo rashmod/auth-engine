@@ -13,7 +13,6 @@ export const attributeSchema = z.record(primitive);
 export type Attributes = z.infer<typeof attributeSchema>;
 
 const logicalOperators = z.enum(['and', 'or', 'not']);
-export const ownershipOperator = z.literal('owner');
 export const membershipOperator = z.literal('contains');
 const comparators = z.enum(['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'in', 'nin']);
 
@@ -29,15 +28,6 @@ export const actions = z.enum(['read', 'create', 'update', 'delete']);
 export type Action = z.infer<typeof actions>;
 
 const compareSource = z.enum(['subject', 'resource']);
-
-const ownershipConditionSchema = z
-	.object({
-		operator: ownershipOperator,
-		ownerKey: z.string(), // key in user
-		resourceKey: z.string(), // key in resource
-	})
-	.strict();
-export type OwnershipCondition = z.infer<typeof ownershipConditionSchema>;
 
 const dynamicKey = z.string().min(2).regex(/^\$.+/);
 export type DynamicKey = z.infer<typeof dynamicKey>;
@@ -97,7 +87,6 @@ export type AttributeCondition = z.infer<typeof attributeConditionSchema>;
 const baseConditionSchema = z.union([
 	attributeConditionSchema,
 	entityKeyConditionSchema,
-	ownershipConditionSchema,
 	membershipConditionSchema,
 ]);
 export type Condition =

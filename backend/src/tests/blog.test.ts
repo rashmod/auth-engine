@@ -38,7 +38,7 @@ describe('Basic blog app', () => {
 			conditions: {
 				operator: 'and',
 				conditions: [
-					{ operator: 'owner', resourceKey: 'authorId', ownerKey: 'id' },
+					{ operator: 'eq', subjectKey: '$id', resourceKey: '$authorId' },
 					{
 						operator: 'eq',
 						attributeKey: '$isAuthenticated',
@@ -54,7 +54,7 @@ describe('Basic blog app', () => {
 			conditions: {
 				operator: 'and',
 				conditions: [
-					{ operator: 'owner', resourceKey: 'authorId', ownerKey: 'id' },
+					{ operator: 'eq', subjectKey: '$id', resourceKey: '$authorId' },
 					{
 						operator: 'eq',
 						attributeKey: '$isAuthenticated',
