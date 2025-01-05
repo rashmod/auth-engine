@@ -9,7 +9,13 @@ import type {
 	NumericOperators,
 	OwnershipCondition,
 } from '@/schema';
-import { membershipOperator, ownershipOperator } from '@/schema';
+import {
+	collectionOperators,
+	equalityOperators,
+	membershipOperator,
+	numericOperators,
+	ownershipOperator,
+} from '@/schema';
 
 export class Auth<T extends readonly [string, ...string[]]> {
 	constructor(private readonly policies: Policy<T>[]) {}
@@ -150,7 +156,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 	}
 
 	private evaluateAdvancedCondition<T extends string | number | boolean>(
-		condition: AdvancedCondition,
+		condition: Extract<AdvancedCondition, { attributeKey: string }>,
 		value: T,
 		log = false
 	) {
@@ -207,42 +213,119 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		advancedCondition: AdvancedCondition,
 		log = false
 	) {
-		const key = this.getDynamicKey(advancedCondition.attributeKey);
+		if ('attributeKey' in advancedCondition) {
+			const key = this.getDynamicKey(advancedCondition.attributeKey);
 
-		const resourceValue = resource.attributes[key];
-		const subjectValue = subject.attributes[key];
+			const resourceValue = resource.attributes[key];
+			const subjectValue = subject.attributes[key];
 
-		this.log('Advanced Condition Values', { subjectValue, resourceValue }, log);
+			this.log('Advanced Condition Values', { subjectValue, resourceValue }, log);
 
-		if (advancedCondition.compareSource === 'subject' && subjectValue) {
-			if (Array.isArray(subjectValue)) {
-				throw new InvalidOperandError(subjectValue, advancedCondition.operator);
+			if (advancedCondition.compareSource === 'subject' && subjectValue) {
+				if (Array.isArray(subjectValue)) {
+					throw new InvalidOperandError(subjectValue, advancedCondition.operator);
+				}
+				return this.evaluateAdvancedCondition(advancedCondition, subjectValue, log);
 			}
-			return this.evaluateAdvancedCondition(advancedCondition, subjectValue, log);
-		}
 
-		if (advancedCondition.compareSource === 'resource' && resourceValue) {
+			if (advancedCondition.compareSource === 'resource' && resourceValue) {
+				if (Array.isArray(resourceValue)) {
+					throw new InvalidOperandError(resourceValue, advancedCondition.operator);
+				}
+				return this.evaluateAdvancedCondition(advancedCondition, resourceValue);
+			}
+
+			if (resourceValue === undefined || subjectValue === undefined) {
+				return false;
+			}
+
 			if (Array.isArray(resourceValue)) {
 				throw new InvalidOperandError(resourceValue, advancedCondition.operator);
 			}
-			return this.evaluateAdvancedCondition(advancedCondition, resourceValue);
+			if (Array.isArray(subjectValue)) {
+				throw new InvalidOperandError(subjectValue, advancedCondition.operator);
+			}
+
+			const resourceEval = this.evaluateAdvancedCondition(advancedCondition, resourceValue);
+			const subjectEval = this.evaluateAdvancedCondition(advancedCondition, subjectValue);
+
+			return resourceEval && subjectEval;
 		}
+
+		const subjectKey = this.getDynamicKey(advancedCondition.subjectKey);
+		const resourceKey = this.getDynamicKey(advancedCondition.resourceKey);
+
+		const subjectValue = subject.attributes[subjectKey];
+		const resourceValue = resource.attributes[resourceKey];
 
 		if (resourceValue === undefined || subjectValue === undefined) {
 			return false;
 		}
 
-		if (Array.isArray(resourceValue)) {
-			throw new InvalidOperandError(resourceValue, advancedCondition.operator);
-		}
 		if (Array.isArray(subjectValue)) {
 			throw new InvalidOperandError(subjectValue, advancedCondition.operator);
 		}
 
-		const resourceEval = this.evaluateAdvancedCondition(advancedCondition, resourceValue);
-		const subjectEval = this.evaluateAdvancedCondition(advancedCondition, subjectValue);
+		if (Array.isArray(resourceValue)) {
+			const parsed = collectionOperators.safeParse(advancedCondition.operator);
 
-		return resourceEval && subjectEval;
+			if (!parsed.success) {
+				throw new InvalidOperandError(resourceValue, advancedCondition.operator);
+			}
+
+			const isTypeSame = resourceValue.every((item) => typeof item === typeof subjectValue);
+			// TODO should it be an error or should we just return false
+			if (!isTypeSame) {
+				throw new InvalidOperandError(subjectValue, advancedCondition.operator);
+			}
+
+			return this.evaluateAdvancedCondition(
+				{
+					operator: parsed.data,
+					referenceValue: resourceValue,
+					attributeKey: 'this-is-a-dummy-value',
+				},
+				subjectValue,
+				log
+			);
+		} else {
+			if (typeof subjectValue !== typeof resourceValue) {
+				throw new InvalidOperandError(subjectValue, advancedCondition.operator);
+			}
+
+			const equalityParsed = equalityOperators.safeParse(advancedCondition.operator);
+			if (equalityParsed.success) {
+				return this.evaluateAdvancedCondition(
+					{
+						operator: equalityParsed.data,
+						referenceValue: resourceValue,
+						attributeKey: 'this-is-a-dummy-value',
+					},
+					subjectValue
+				);
+			}
+
+			const numericParsed = numericOperators.safeParse(advancedCondition.operator);
+			if (numericParsed.success) {
+				if (typeof subjectValue !== 'number') {
+					throw new InvalidOperandError(subjectValue, advancedCondition.operator);
+				}
+				if (typeof resourceValue !== 'number') {
+					throw new InvalidOperandError(resourceValue, advancedCondition.operator);
+				}
+
+				return this.evaluateAdvancedCondition(
+					{
+						operator: numericParsed.data,
+						referenceValue: resourceValue,
+						attributeKey: 'this-is-a-dummy-value',
+					},
+					subjectValue
+				);
+			}
+
+			throw new InvalidOperandError(subjectValue, advancedCondition.operator);
+		}
 	}
 
 	private compareNumbers(operator: NumericOperators, left: number, right: number) {
@@ -268,7 +351,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 }
 
 class InvalidOperandError extends Error {
-	constructor(value: unknown, operator: string) {
-		super(`Invalid value type: ${typeof value} for condition ${operator}`);
+	constructor(value: unknown, operator: string, message?: string) {
+		super(`Invalid value type: ${typeof value} for condition ${operator}\n${message}`);
 	}
 }
