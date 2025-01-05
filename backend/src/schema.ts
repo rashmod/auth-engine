@@ -17,6 +17,12 @@ export const ownershipOperator = z.literal('owner');
 export const membershipOperator = z.literal('contains');
 const comparators = z.enum(['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'in', 'nin']);
 
+const equalityOperators = comparators.extract(['eq', 'ne']);
+const numericOperators = comparators.extract(['gt', 'gte', 'lt', 'lte']);
+const collectionOperators = comparators.extract(['in', 'nin']);
+
+export type NumericOperators = z.infer<typeof numericOperators>;
+
 export const actions = z.enum(['read', 'create', 'update', 'delete']);
 export type Action = z.infer<typeof actions>;
 

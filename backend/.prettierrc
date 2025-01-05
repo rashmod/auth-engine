@@ -1,8 +1,5 @@
-
 {
-	"plugins": [
-		"@trivago/prettier-plugin-sort-imports",
-	],
+	"plugins": ["@trivago/prettier-plugin-sort-imports"],
 	"printWidth": 80,
 	"useTabs": true,
 	"trailingComma": "es5",
@@ -18,6 +15,3 @@
 	"importOrderSeparation": true,
 	"importOrderSortSpecifiers": true
 }
-
-
-

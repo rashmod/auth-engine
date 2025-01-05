@@ -6,6 +6,7 @@ import type {
 	DynamicKey,
 	LogicalCondition,
 	MembershipCondition,
+	NumericOperators,
 	OwnershipCondition,
 } from '@/schema';
 import { membershipOperator, ownershipOperator } from '@/schema';
@@ -205,22 +206,17 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			case 'lte': {
 				validateValue(typeof value === 'number', condition.operator, value);
 				const val = value as number;
-				switch (condition.operator) {
-					case 'gt':
-						return val > condition.referenceValue;
-					case 'gte':
-						return val >= condition.referenceValue;
-					case 'lt':
-						return val < condition.referenceValue;
-					case 'lte':
-						return val <= condition.referenceValue;
-				}
+				return this.compareNumbers(
+					condition.operator,
+					val,
+					condition.referenceValue
+				);
 			}
 
 			case 'in':
 			case 'nin': {
 				validateValue(
-					(typeof value === 'string' || typeof value === 'number') &&
+					typeof value !== 'boolean' &&
 						condition.referenceValue.some(
 							(item) => typeof item === typeof value
 						),
@@ -291,6 +287,23 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		);
 
 		return resourceEval && subjectEval;
+	}
+
+	private compareNumbers(
+		operator: NumericOperators,
+		left: number,
+		right: number
+	) {
+		switch (operator) {
+			case 'gt':
+				return left > right;
+			case 'gte':
+				return left >= right;
+			case 'lt':
+				return left < right;
+			case 'lte':
+				return left <= right;
+		}
 	}
 
 	private getDynamicKey(str: DynamicKey) {
