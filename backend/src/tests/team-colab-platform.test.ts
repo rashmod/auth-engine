@@ -9,6 +9,7 @@ import { PolicyManager } from '@/policy-generator';
  * only task assignee or project manager can update a task
  * only project manager can delete task or files
  * only project manager can add or remove project members
+ * file editors in a project and project manager can edit files
  * admins can manage all resources
  *
  */
@@ -26,9 +27,9 @@ describe('Basic team collaboration app', () => {
 				operator: 'or',
 				conditions: [
 					{
-						operator: 'contains',
-						referenceKey: '$projectId',
-						collectionKey: '$projects',
+						operator: 'in',
+						targetKey: '$projects',
+						collectionKey: '$projectId',
 						collectionSource: 'subject',
 					},
 					{
@@ -47,9 +48,9 @@ describe('Basic team collaboration app', () => {
 				operator: 'or',
 				conditions: [
 					{
-						operator: 'contains',
-						referenceKey: '$projectId',
-						collectionKey: '$projects',
+						operator: 'in',
+						targetKey: '$projects',
+						collectionKey: '$projectId',
 						collectionSource: 'subject',
 					},
 					{
@@ -82,9 +83,9 @@ describe('Basic team collaboration app', () => {
 						operator: 'and',
 						conditions: [
 							{
-								operator: 'contains',
-								referenceKey: '$projectId',
-								collectionKey: '$projects',
+								operator: 'in',
+								targetKey: '$projects',
+								collectionKey: '$projectId',
 								collectionSource: 'subject',
 							},
 							{
@@ -123,6 +124,32 @@ describe('Basic team collaboration app', () => {
 			conditions: {
 				operator: 'or',
 				conditions: [
+					{
+						operator: 'eq',
+						subjectKey: '$id',
+						resourceKey: '$manager',
+					},
+					{
+						operator: 'eq',
+						attributeKey: '$role',
+						referenceValue: 'admin',
+						compareSource: 'subject',
+					},
+				],
+			},
+		},
+		{
+			action: 'update',
+			resource: 'file',
+			conditions: {
+				operator: 'or',
+				conditions: [
+					{
+						operator: 'in',
+						targetKey: '$id',
+						collectionKey: '$editors',
+						collectionSource: 'resource',
+					},
 					{
 						operator: 'eq',
 						subjectKey: '$id',
@@ -192,6 +219,12 @@ describe('Basic team collaboration app', () => {
 		id: 'file1',
 		type: 'file',
 		attributes: { projectId: 'project1' },
+	});
+
+	const file2 = policyGenerator.createResource({
+		id: 'file2',
+		type: 'file',
+		attributes: { projectId: 'project1', editors: ['user1'], manager: 'user4' },
 	});
 
 	const policies = policyGenerator.getPolicies();
@@ -297,6 +330,32 @@ describe('Basic team collaboration app', () => {
 
 		it('should allow admin to update project', () => {
 			expect(auth.isAuthorized(admin, project1, 'update')).toBe(true);
+		});
+	});
+
+	describe('edit file', () => {
+		it('should not allow non-project members to update file', () => {
+			expect(auth.isAuthorized(user2, file1, 'update')).toBe(false);
+		});
+
+		it('should not allow non-editor project members to update file', () => {
+			expect(auth.isAuthorized(user3, file2, 'update')).toBe(false);
+		});
+
+		it('should allow editor project members to update file', () => {
+			expect(auth.isAuthorized(user1, file2, 'update')).toBe(true);
+		});
+
+		it('should allow project manager to update file', () => {
+			expect(auth.isAuthorized(manager1, file2, 'update')).toBe(true);
+		});
+
+		it('should not allow project manager of different project to update file', () => {
+			expect(auth.isAuthorized(manager2, file2, 'update')).toBe(false);
+		});
+
+		it('should allow admin to update file', () => {
+			expect(auth.isAuthorized(admin, file2, 'update')).toBe(true);
 		});
 	});
 });

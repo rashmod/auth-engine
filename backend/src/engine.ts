@@ -6,20 +6,18 @@ import type {
 	DynamicKey,
 	EntityKeyCondition,
 	LogicalCondition,
-	MembershipCondition,
 	NumericOperators,
 } from '@/schema';
-import {
-	collectionOperators,
-	equalityOperators,
-	membershipOperator,
-	numericOperators,
-} from '@/schema';
+import { collectionOperators, equalityOperators, numericOperators } from '@/schema';
 
 export class Auth<T extends readonly [string, ...string[]]> {
 	constructor(private readonly policies: Policy<T>[]) {}
 
 	isAuthorized(subject: Resource<T>, resource: Resource<T>, action: Action, log = false) {
+		this.log('subject', subject, log);
+		this.log('resource', resource, log);
+		this.log('action', action, log);
+
 		const relevantPolicies = this.policies.filter((policy) => {
 			return policy.resource === resource.type && policy.action === action;
 		});
@@ -51,11 +49,6 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		if ('conditions' in condition) {
 			this.log('Logical Condition', condition, log);
 			return this.evaluateLogicalCondition(subject, resource, condition, log);
-		}
-
-		if (condition.operator === membershipOperator.value) {
-			this.log('Membership Condition', condition, log);
-			return this.evaluateMembershipCondition(subject, resource, condition, log);
 		}
 
 		if ('attributeKey' in condition) {
@@ -93,41 +86,6 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			default:
 				throw new Error('Invalid logical condition');
 		}
-	}
-
-	private evaluateMembershipCondition(
-		subject: Resource<T>,
-		resource: Resource<T>,
-		membershipCondition: MembershipCondition,
-		log = false
-	) {
-		const referenceKey = this.getDynamicKey(membershipCondition.referenceKey);
-		const collectionKey = this.getDynamicKey(membershipCondition.collectionKey);
-
-		const referenceValue =
-			membershipCondition.collectionSource === 'resource'
-				? subject.attributes[referenceKey]
-				: resource.attributes[referenceKey];
-
-		const collectionValue =
-			membershipCondition.collectionSource === 'resource'
-				? resource.attributes[collectionKey]
-				: subject.attributes[collectionKey];
-
-		this.log('Membership Values', { referenceValue, collectionValue }, log);
-
-		if (collectionValue === undefined || referenceValue === undefined) {
-			return false;
-		}
-
-		if (!Array.isArray(collectionValue)) {
-			throw new InvalidOperandError(collectionValue, membershipOperator.value);
-		}
-		if (Array.isArray(referenceValue)) {
-			throw new InvalidOperandError(referenceValue, membershipOperator.value);
-		}
-
-		return collectionValue.find((v) => v === referenceValue) !== undefined;
 	}
 
 	private evaluateAdvancedCondition<T extends string | number | boolean>(
@@ -188,11 +146,59 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		condition: EntityKeyCondition,
 		log = false
 	) {
+		if ('collectionSource' in condition) {
+			const targetKey = this.getDynamicKey(condition.targetKey);
+			const collectionKey = this.getDynamicKey(condition.collectionKey);
+
+			const targetValue =
+				condition.collectionSource === 'subject'
+					? resource.attributes[collectionKey]
+					: subject.attributes[targetKey];
+			const collectionValue =
+				condition.collectionSource === 'subject'
+					? subject.attributes[targetKey]
+					: resource.attributes[collectionKey];
+
+			this.log(
+				'Entity Key Condition Values',
+				{ targetKey, collectionKey, targetValue, collectionValue },
+				log
+			);
+
+			if (collectionValue === undefined || targetValue === undefined) {
+				return false;
+			}
+
+			if (Array.isArray(targetValue)) {
+				throw new InvalidOperandError(targetValue, condition.operator);
+			}
+
+			if (!Array.isArray(collectionValue)) {
+				throw new InvalidOperandError(collectionValue, condition.operator);
+			}
+
+			return this.evaluateAdvancedCondition(
+				{
+					operator: condition.operator,
+					attributeKey: 'this-is-ignored',
+					referenceValue: collectionValue,
+				},
+				targetValue,
+				log
+			);
+		}
+
 		const subjectKey = this.getDynamicKey(condition.subjectKey);
 		const resourceKey = this.getDynamicKey(condition.resourceKey);
 
 		const subjectValue = subject.attributes[subjectKey];
 		const resourceValue = resource.attributes[resourceKey];
+
+		this.log(
+			'Entity Key Condition Values',
+			{ subjectKey, resourceKey, subjectValue, resourceValue },
+			log
+		);
 
 		if (resourceValue === undefined || subjectValue === undefined) {
 			return false;

@@ -13,7 +13,6 @@ export const attributeSchema = z.record(primitive);
 export type Attributes = z.infer<typeof attributeSchema>;
 
 const logicalOperators = z.enum(['and', 'or', 'not']);
-export const membershipOperator = z.literal('contains');
 const comparators = z.enum(['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'in', 'nin']);
 
 type LogicalOperator = z.infer<typeof logicalOperators>;
@@ -31,15 +30,6 @@ const compareSource = z.enum(['subject', 'resource']);
 
 const dynamicKey = z.string().min(2).regex(/^\$.+/);
 export type DynamicKey = z.infer<typeof dynamicKey>;
-const membershipConditionSchema = z
-	.object({
-		operator: membershipOperator,
-		collectionKey: dynamicKey, // key of collection
-		referenceKey: dynamicKey, // key of value to check
-		collectionSource: compareSource,
-	})
-	.strict();
-export type MembershipCondition = z.infer<typeof membershipConditionSchema>;
 
 const equalityConditionSchema = z
 	.object({
@@ -68,13 +58,23 @@ const collectionConditionSchema = z
 	})
 	.strict();
 
-const entityKeyConditionSchema = z
-	.object({
-		subjectKey: dynamicKey,
-		resourceKey: dynamicKey,
-		operator: comparators,
-	})
-	.strict();
+const entityKeyConditionSchema = z.union([
+	z
+		.object({
+			subjectKey: dynamicKey,
+			resourceKey: dynamicKey,
+			operator: comparators.extract(['eq', 'ne', 'gt', 'lt', 'gte', 'lte']),
+		})
+		.strict(),
+	z
+		.object({
+			targetKey: dynamicKey,
+			collectionKey: dynamicKey,
+			operator: comparators.extract(['in', 'nin']),
+			collectionSource: compareSource,
+		})
+		.strict(),
+]);
 export type EntityKeyCondition = z.infer<typeof entityKeyConditionSchema>;
 
 const attributeConditionSchema = z.union([
@@ -84,11 +84,7 @@ const attributeConditionSchema = z.union([
 ]);
 export type AttributeCondition = z.infer<typeof attributeConditionSchema>;
 
-const baseConditionSchema = z.union([
-	attributeConditionSchema,
-	entityKeyConditionSchema,
-	membershipConditionSchema,
-]);
+const baseConditionSchema = z.union([attributeConditionSchema, entityKeyConditionSchema]);
 export type Condition =
 	| z.infer<typeof baseConditionSchema>
 	| {
