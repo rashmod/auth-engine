@@ -257,14 +257,14 @@ export class Auth<T extends readonly [string, ...string[]]> {
 
 		this.log('Attribute Condition Values', { key, subjectValue, resourceValue }, log);
 
-		if (attributeCondition.compareSource === 'subject' && subjectValue) {
+		if (attributeCondition.compareSource === 'subject' && subjectValue !== undefined) {
 			if (Array.isArray(subjectValue)) {
 				throw new InvalidOperandError(subjectValue, attributeCondition.operator);
 			}
 			return this.evaluateAttributeCondition(attributeCondition, subjectValue);
 		}
 
-		if (attributeCondition.compareSource === 'resource' && resourceValue) {
+		if (attributeCondition.compareSource === 'resource' && resourceValue !== undefined) {
 			if (Array.isArray(resourceValue)) {
 				throw new InvalidOperandError(resourceValue, attributeCondition.operator);
 			}
