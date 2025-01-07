@@ -18,7 +18,7 @@ import {
 	numericOperators,
 } from '@/schema';
 
-export class Auth<T extends readonly [string, ...string[]]> {
+export class AuthEngine<T extends readonly [string, ...string[]]> {
 	constructor(private readonly policies: Map<PolicyKey<T>, Policy<T>[]>) {}
 
 	isAuthorized(subject: Resource<T>, resource: Resource<T>, action: Action, log = false) {

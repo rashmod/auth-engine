@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { Auth } from '@/engine';
+import { AuthEngine } from '@/engine';
 import { PolicyManager } from '@/policy-manager';
 
 /*
@@ -68,7 +68,7 @@ describe('Basic blog app', () => {
 
 	const policies = policyManager.getPolicies();
 
-	const auth = new Auth(policies);
+	const auth = new AuthEngine(policies);
 
 	const user = policyManager.createResource({
 		id: 'user1',

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { Auth } from '@/engine';
+import { AuthEngine } from '@/engine';
 import { PolicyManager } from '@/policy-manager';
 
 describe('Basic todo app', () => {
@@ -68,7 +68,7 @@ describe('Basic todo app', () => {
 
 	const policies = policyManager.getPolicies();
 
-	const auth = new Auth(policies);
+	const auth = new AuthEngine(policies);
 
 	const user = policyManager.createResource({
 		id: 'user1',
@@ -109,16 +109,16 @@ describe('Basic todo app', () => {
 			expect(auth.isAuthorized(user, todo, 'read')).toBe(true);
 		});
 
+		it('should allow other user to read a todo', () => {
+			expect(auth.isAuthorized(user, todo, 'read')).toBe(true);
+		});
+
 		it('should allow admin to read a todo', () => {
 			expect(auth.isAuthorized(admin, todo, 'read')).toBe(true);
 		});
 	});
 
 	describe('update todo', () => {
-		it('should allow other user to read a todo', () => {
-			expect(auth.isAuthorized(user, todo, 'read')).toBe(true);
-		});
-
 		it('should allow owner to update a todo', () => {
 			expect(auth.isAuthorized(user, todo, 'update')).toBe(true);
 		});
