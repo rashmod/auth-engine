@@ -68,25 +68,28 @@ const foo = z.discriminatedUnion('operator', [
 		.strict(),
 ]);
 
-const entityKeyConditionSchema = z.union([
-	z
-		.object({
-			subjectKey: dynamicKey,
-			resourceKey: dynamicKey,
-			operator: comparators.extract(['eq', 'ne', 'gt', 'lt', 'gte', 'lte']),
-		})
-		.strict(),
-	z
-		.object({
-			targetKey: dynamicKey,
-			collectionKey: dynamicKey,
-			operator: comparators.extract(['in', 'nin']),
-			collectionSource: compareSource,
-		})
-		.strict(),
+export const entityKeyPrimitiveConditionSchema = z
+	.object({
+		subjectKey: dynamicKey,
+		resourceKey: dynamicKey,
+		operator: comparators.extract(['eq', 'ne', 'gt', 'lt', 'gte', 'lte']),
+	})
+	.strict();
+export const entityKeyCollectionConditionSchema = z
+	.object({
+		targetKey: dynamicKey,
+		collectionKey: dynamicKey,
+		operator: comparators.extract(['in', 'nin']),
+		collectionSource: compareSource,
+	})
+	.strict();
+
+export const entityKeyConditionSchema = z.union([
+	entityKeyPrimitiveConditionSchema,
+	entityKeyCollectionConditionSchema,
 ]);
 
-const attributeConditionSchema = z.union([
+export const attributeConditionSchema = z.union([
 	equalityConditionSchema,
 	numericConditionSchema,
 	collectionConditionSchema,
@@ -94,7 +97,7 @@ const attributeConditionSchema = z.union([
 
 const baseConditionSchema = z.union([attributeConditionSchema, entityKeyConditionSchema]);
 
-const logicalConditionSchema: z.ZodType<Condition> = z.union([
+export const logicalConditionSchema: z.ZodType<Condition> = z.union([
 	z
 		.object({
 			operator: logicalOperators.extract(['and', 'or']),

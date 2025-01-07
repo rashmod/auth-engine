@@ -8,7 +8,15 @@ import type {
 	LogicalCondition,
 	NumericOperators,
 } from '@/schema';
-import { equalityOperators, numericOperators } from '@/schema';
+import {
+	attributeConditionSchema,
+	entityKeyCollectionConditionSchema,
+	entityKeyConditionSchema,
+	entityKeyPrimitiveConditionSchema,
+	equalityOperators,
+	logicalConditionSchema,
+	numericOperators,
+} from '@/schema';
 
 export class Auth<T extends readonly [string, ...string[]]> {
 	constructor(private readonly policies: Map<PolicyKey<T>, Policy<T>[]>) {}
@@ -45,18 +53,25 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		condition: Condition,
 		log = false
 	): boolean {
-		if ('conditions' in condition) {
-			this.log('Logical Condition', condition, log);
-			return this.evaluateLogicalCondition(subject, resource, condition, log);
-		}
-
-		if ('attributeKey' in condition) {
+		const attributeCondition = attributeConditionSchema.safeParse(condition);
+		if (attributeCondition.success) {
 			this.log('Attribute Condition', condition, log);
-			return this.resolveAttributeCondition(subject, resource, condition, log);
+			return this.resolveAttributeCondition(subject, resource, attributeCondition.data, log);
 		}
 
-		this.log('Entity Key Condition', condition, log);
-		return this.evaluateEntityKeyCondition(subject, resource, condition, log);
+		const entityKeyCondition = entityKeyConditionSchema.safeParse(condition);
+		if (entityKeyCondition.success) {
+			this.log('Entity Key Condition', condition, log);
+			return this.evaluateEntityKeyCondition(subject, resource, entityKeyCondition.data, log);
+		}
+
+		const logicalCondition = logicalConditionSchema.safeParse(condition);
+		if (logicalCondition.success) {
+			this.log('Logical Condition', condition, log);
+			return this.evaluateLogicalCondition(subject, resource, logicalCondition.data, log);
+		}
+
+		throw new Error('Why are you here? We should never get here. Wrong condition.');
 	}
 
 	private evaluateLogicalCondition(
@@ -149,10 +164,14 @@ export class Auth<T extends readonly [string, ...string[]]> {
 	private evaluateEntityKeyCondition(
 		subject: Resource<T>,
 		resource: Resource<T>,
-		condition: EntityKeyCondition,
+		entityKeyCondition: EntityKeyCondition,
 		log = false
 	) {
-		if ('collectionSource' in condition) {
+		const collectionCondition = entityKeyCollectionConditionSchema.safeParse(entityKeyCondition);
+
+		if (collectionCondition.success) {
+			const condition = collectionCondition.data;
+
 			const collectionKey = this.getDynamicKey(condition.collectionKey);
 			const targetKey = this.getDynamicKey(condition.targetKey);
 
@@ -179,7 +198,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			if (Array.isArray(targetValue)) {
 				throw new InvalidOperandError(
 					targetValue,
-					condition.operator,
+					entityKeyCondition.operator,
 					'The target value must be a primitive, received an array'
 				);
 			}
@@ -187,7 +206,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			if (!Array.isArray(collectionValue)) {
 				throw new InvalidOperandError(
 					collectionValue,
-					condition.operator,
+					entityKeyCondition.operator,
 					'The collection value must be an array, received a primitive'
 				);
 			}
@@ -202,83 +221,89 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			);
 		}
 
-		const subjectKey = this.getDynamicKey(condition.subjectKey);
-		const resourceKey = this.getDynamicKey(condition.resourceKey);
+		const primitiveCondition = entityKeyPrimitiveConditionSchema.safeParse(entityKeyCondition);
 
-		const subjectValue = subject.attributes[subjectKey];
-		const resourceValue = resource.attributes[resourceKey];
+		if (primitiveCondition.success) {
+			const condition = primitiveCondition.data;
 
-		this.log(
-			'Entity Key Condition Values',
-			{ subjectKey, resourceKey, subjectValue, resourceValue },
-			log
-		);
+			const subjectKey = this.getDynamicKey(condition.subjectKey);
+			const resourceKey = this.getDynamicKey(condition.resourceKey);
 
-		if (resourceValue === undefined || subjectValue === undefined) {
-			return false;
-		}
+			const subjectValue = subject.attributes[subjectKey];
+			const resourceValue = resource.attributes[resourceKey];
 
-		if (Array.isArray(subjectValue)) {
-			throw new InvalidOperandError(
-				subjectValue,
-				condition.operator,
-				'The subject value must be a primitive, received an array'
+			this.log(
+				'Entity Key Condition Values',
+				{ subjectKey, resourceKey, subjectValue, resourceValue },
+				log
 			);
-		}
 
-		if (Array.isArray(resourceValue)) {
-			throw new InvalidOperandError(
-				subjectValue,
-				condition.operator,
-				'The resource value must be a primitive, received an array'
-			);
-		}
+			if (resourceValue === undefined || subjectValue === undefined) {
+				return false;
+			}
 
-		if (typeof subjectValue !== typeof resourceValue) {
-			throw new InvalidOperandError(
-				subjectValue,
-				condition.operator,
-				`The values must be the same type, received different types. Subject: ${typeof subjectValue}, Resource: ${typeof resourceValue}`
-			);
-		}
-
-		const equalityParsed = equalityOperators.safeParse(condition.operator);
-		if (equalityParsed.success) {
-			return this.evaluateAttributeCondition(
-				{
-					operator: equalityParsed.data,
-					referenceValue: resourceValue,
-					attributeKey: 'this-is-ignored',
-				},
-				subjectValue
-			);
-		}
-
-		const numericParsed = numericOperators.safeParse(condition.operator);
-		if (numericParsed.success) {
-			if (typeof subjectValue !== 'number') {
+			if (Array.isArray(subjectValue)) {
 				throw new InvalidOperandError(
 					subjectValue,
-					condition.operator,
-					'The subject value must be a number'
-				);
-			}
-			if (typeof resourceValue !== 'number') {
-				throw new InvalidOperandError(
-					resourceValue,
-					condition.operator,
-					'The resource value must be a number'
+					entityKeyCondition.operator,
+					'The subject value must be a primitive, received an array'
 				);
 			}
 
-			return this.evaluateAttributeCondition(
-				{
-					operator: numericParsed.data,
-					referenceValue: resourceValue,
-					attributeKey: 'this-is-ignored',
-				},
-				subjectValue
-			);
+			if (Array.isArray(resourceValue)) {
+				throw new InvalidOperandError(
+					subjectValue,
+					entityKeyCondition.operator,
+					'The resource value must be a primitive, received an array'
+				);
+			}
+
+			if (typeof subjectValue !== typeof resourceValue) {
+				throw new InvalidOperandError(
+					subjectValue,
+					entityKeyCondition.operator,
+					`The values must be the same type, received different types. Subject: ${typeof subjectValue}, Resource: ${typeof resourceValue}`
+				);
+			}
+
+			const equalityParsed = equalityOperators.safeParse(entityKeyCondition.operator);
+			if (equalityParsed.success) {
+				return this.evaluateAttributeCondition(
+					{
+						operator: equalityParsed.data,
+						referenceValue: resourceValue,
+						attributeKey: 'this-is-ignored',
+					},
+					subjectValue
+				);
+			}
+
+			const numericParsed = numericOperators.safeParse(entityKeyCondition.operator);
+			if (numericParsed.success) {
+				if (typeof subjectValue !== 'number') {
+					throw new InvalidOperandError(
+						subjectValue,
+						entityKeyCondition.operator,
+						'The subject value must be a number'
+					);
+				}
+				if (typeof resourceValue !== 'number') {
+					throw new InvalidOperandError(
+						resourceValue,
+						entityKeyCondition.operator,
+						'The resource value must be a number'
+					);
+				}
+
+				return this.evaluateAttributeCondition(
+					{
+						operator: numericParsed.data,
+						referenceValue: resourceValue,
+						attributeKey: 'this-is-ignored',
+					},
+					subjectValue
+				);
+			}
 		}
 
 		throw new Error('Why are you here? We should never get here. Idk how you got here.');
