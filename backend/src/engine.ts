@@ -1,4 +1,4 @@
-import type { Policy, Resource } from '@/policy-generator';
+import type { Policy, Resource } from '@/policy-manager';
 import type {
 	Action,
 	AttributeCondition,

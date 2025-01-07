@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { Auth } from '@/engine';
-import { PolicyManager } from '@/policy-generator';
+import { PolicyManager } from '@/policy-manager';
 
 describe('Basic todo app', () => {
 	const resources = ['user', 'todo'] as const;
