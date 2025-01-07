@@ -84,7 +84,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 				return result;
 			}
 			default:
-				throw new Error('Invalid logical condition');
+				throw new Error('Why are you here? We should never get here. Wrong logical operator.');
 		}
 	}
 
@@ -92,23 +92,26 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		condition: AttributeCondition,
 		value: T
 	) {
-		function validateValue(check: boolean, operator: string, value: T) {
+		function validateValue(check: boolean, operator: string, value: T, message = '') {
 			if (!check) {
-				throw new InvalidOperandError(value, operator);
+				throw new InvalidOperandError(value, operator, message);
 			}
 		}
 
 		switch (condition.operator) {
 			case 'eq':
 			case 'ne': {
-				const result = validateValue(
+				validateValue(
 					typeof value === typeof condition.referenceValue,
 					condition.operator,
-					value
+					value,
+					'The values must be the same type, received different types.'
 				);
-				condition.operator === 'eq'
-					? value === condition.referenceValue
-					: value !== condition.referenceValue;
+
+				const result =
+					condition.operator === 'eq'
+						? value === condition.referenceValue
+						: value !== condition.referenceValue;
 
 				return result;
 			}
@@ -117,7 +120,12 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			case 'gte':
 			case 'lt':
 			case 'lte': {
-				validateValue(typeof value === 'number', condition.operator, value);
+				validateValue(
+					typeof value === 'number',
+					condition.operator,
+					value,
+					'The value must be a number.'
+				);
 				const val = value as number;
 				return this.compareNumbers(condition.operator, val, condition.referenceValue);
 			}
@@ -128,7 +136,8 @@ export class Auth<T extends readonly [string, ...string[]]> {
 					typeof value !== 'boolean' &&
 						condition.referenceValue.find((item) => typeof item === typeof value) !== undefined,
 					condition.operator,
-					value
+					value,
+					'The values must be the same type, received different types.'
 				);
 				const includes = condition.referenceValue.find((item) => item === value) !== undefined;
 				const result = condition.operator === 'in' ? includes : !includes;
@@ -169,11 +178,19 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			}
 
 			if (Array.isArray(targetValue)) {
-				throw new InvalidOperandError(targetValue, condition.operator);
+				throw new InvalidOperandError(
+					targetValue,
+					condition.operator,
+					'The target value must be a primitive, received an array'
+				);
 			}
 
 			if (!Array.isArray(collectionValue)) {
-				throw new InvalidOperandError(collectionValue, condition.operator);
+				throw new InvalidOperandError(
+					collectionValue,
+					condition.operator,
+					'The collection value must be an array, received a primitive'
+				);
 			}
 
 			return this.evaluateAttributeCondition(
@@ -203,15 +220,27 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		}
 
 		if (Array.isArray(subjectValue)) {
-			throw new InvalidOperandError(subjectValue, condition.operator);
+			throw new InvalidOperandError(
+				subjectValue,
+				condition.operator,
+				'The subject value must be a primitive, received an array'
+			);
 		}
 
 		if (Array.isArray(resourceValue)) {
-			throw new InvalidOperandError(subjectValue, condition.operator);
+			throw new InvalidOperandError(
+				subjectValue,
+				condition.operator,
+				'The resource value must be a primitive, received an array'
+			);
 		}
 
 		if (typeof subjectValue !== typeof resourceValue) {
-			throw new InvalidOperandError(subjectValue, condition.operator);
+			throw new InvalidOperandError(
+				subjectValue,
+				condition.operator,
+				`The values must be the same type, received different types. Subject: ${typeof subjectValue}, Resource: ${typeof resourceValue}`
+			);
 		}
 
 		const equalityParsed = equalityOperators.safeParse(condition.operator);
@@ -229,10 +258,18 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		const numericParsed = numericOperators.safeParse(condition.operator);
 		if (numericParsed.success) {
 			if (typeof subjectValue !== 'number') {
-				throw new InvalidOperandError(subjectValue, condition.operator);
+				throw new InvalidOperandError(
+					subjectValue,
+					condition.operator,
+					'The subject value must be a number'
+				);
 			}
 			if (typeof resourceValue !== 'number') {
-				throw new InvalidOperandError(resourceValue, condition.operator);
+				throw new InvalidOperandError(
+					resourceValue,
+					condition.operator,
+					'The resource value must be a number'
+				);
 			}
 
 			return this.evaluateAttributeCondition(
@@ -245,7 +282,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			);
 		}
 
-		throw new InvalidOperandError(subjectValue, condition.operator);
+		throw new Error('Why are you here? We should never get here. Idk how you got here.');
 	}
 
 	private resolveAttributeCondition(
@@ -261,16 +298,27 @@ export class Auth<T extends readonly [string, ...string[]]> {
 
 		this.log('Attribute Condition Values', { key, subjectValue, resourceValue }, log);
 
+		const isSubjectArray = Array.isArray(subjectValue);
+		const isResourceArray = Array.isArray(resourceValue);
+
 		if (attributeCondition.compareSource === 'subject' && subjectValue !== undefined) {
-			if (Array.isArray(subjectValue)) {
-				throw new InvalidOperandError(subjectValue, attributeCondition.operator);
+			if (isSubjectArray) {
+				throw new InvalidOperandError(
+					subjectValue,
+					attributeCondition.operator,
+					'The subject value must be a primitive, received an array'
+				);
 			}
 			return this.evaluateAttributeCondition(attributeCondition, subjectValue);
 		}
 
 		if (attributeCondition.compareSource === 'resource' && resourceValue !== undefined) {
-			if (Array.isArray(resourceValue)) {
-				throw new InvalidOperandError(resourceValue, attributeCondition.operator);
+			if (isResourceArray) {
+				throw new InvalidOperandError(
+					resourceValue,
+					attributeCondition.operator,
+					'The resource value must be a primitive, received an array'
+				);
 			}
 			return this.evaluateAttributeCondition(attributeCondition, resourceValue);
 		}
@@ -279,11 +327,20 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			return false;
 		}
 
-		if (Array.isArray(resourceValue)) {
-			throw new InvalidOperandError(resourceValue, attributeCondition.operator);
+		if (isSubjectArray) {
+			throw new InvalidOperandError(
+				subjectValue,
+				attributeCondition.operator,
+				'The subject value must be a primitive, received an array'
+			);
 		}
-		if (Array.isArray(subjectValue)) {
-			throw new InvalidOperandError(subjectValue, attributeCondition.operator);
+
+		if (isResourceArray) {
+			throw new InvalidOperandError(
+				resourceValue,
+				attributeCondition.operator,
+				'The resource value must be a primitive, received an array'
+			);
 		}
 
 		const resourceEval = this.evaluateAttributeCondition(attributeCondition, resourceValue);
@@ -303,7 +360,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 			case 'lte':
 				return left <= right;
 			default:
-				throw new Error(`Invalid numeric operator: ${operator}`);
+				throw new Error('Why are you here? We should never get here. Wrong numeric operator.');
 		}
 	}
 
