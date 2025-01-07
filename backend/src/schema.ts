@@ -6,30 +6,22 @@ const primitive = z.union([
 	z.boolean(),
 	z.string().array(),
 	z.number().array(),
-	// z.boolean().array(),
 ]);
 
 export const attributeSchema = z.record(primitive);
-export type Attributes = z.infer<typeof attributeSchema>;
 
-const logicalOperators = z.enum(['and', 'or', 'not']);
+export const logicalOperators = z.enum(['and', 'or', 'not']);
 const comparators = z.enum(['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'in', 'nin']);
-
-type LogicalOperator = z.infer<typeof logicalOperators>;
 
 export const equalityOperators = comparators.extract(['eq', 'ne']);
 export const numericOperators = comparators.extract(['gt', 'gte', 'lt', 'lte']);
 export const collectionOperators = comparators.extract(['in', 'nin']);
 
-export type NumericOperators = z.infer<typeof numericOperators>;
-
 export const actions = z.enum(['read', 'create', 'update', 'delete']);
-export type Action = z.infer<typeof actions>;
 
 const compareSource = z.enum(['subject', 'resource']);
 
 const dynamicKey = z.string().min(2).regex(/^\$.+/);
-export type DynamicKey = z.infer<typeof dynamicKey>;
 
 const equalityConditionSchema = z
 	.object({
@@ -58,6 +50,24 @@ const collectionConditionSchema = z
 	})
 	.strict();
 
+const foo = z.discriminatedUnion('operator', [
+	z
+		.object({
+			subjectKey: dynamicKey,
+			resourceKey: dynamicKey,
+			operator: comparators.extract(['eq', 'ne', 'gt', 'lt', 'gte', 'lte']),
+		})
+		.strict(),
+	z
+		.object({
+			targetKey: dynamicKey,
+			collectionKey: dynamicKey,
+			operator: comparators.extract(['in', 'nin']),
+			collectionSource: compareSource,
+		})
+		.strict(),
+]);
+
 const entityKeyConditionSchema = z.union([
 	z
 		.object({
@@ -75,23 +85,14 @@ const entityKeyConditionSchema = z.union([
 		})
 		.strict(),
 ]);
-export type EntityKeyCondition = z.infer<typeof entityKeyConditionSchema>;
 
 const attributeConditionSchema = z.union([
 	equalityConditionSchema,
 	numericConditionSchema,
 	collectionConditionSchema,
 ]);
-export type AttributeCondition = z.infer<typeof attributeConditionSchema>;
 
 const baseConditionSchema = z.union([attributeConditionSchema, entityKeyConditionSchema]);
-export type Condition =
-	| z.infer<typeof baseConditionSchema>
-	| {
-			operator: Extract<LogicalOperator, 'and' | 'or'>;
-			conditions: Condition[];
-	  }
-	| { operator: Extract<LogicalOperator, 'not'>; conditions: Condition };
 
 const logicalConditionSchema: z.ZodType<Condition> = z.union([
 	z
@@ -107,6 +108,21 @@ const logicalConditionSchema: z.ZodType<Condition> = z.union([
 		})
 		.strict(),
 ]);
-export type LogicalCondition = z.infer<typeof logicalConditionSchema>;
 
 export const conditionSchema = z.union([baseConditionSchema, logicalConditionSchema]);
+
+export type Attributes = z.infer<typeof attributeSchema>;
+type LogicalOperator = z.infer<typeof logicalOperators>;
+export type NumericOperators = z.infer<typeof numericOperators>;
+export type Action = z.infer<typeof actions>;
+export type DynamicKey = z.infer<typeof dynamicKey>;
+export type EntityKeyCondition = z.infer<typeof entityKeyConditionSchema>;
+export type AttributeCondition = z.infer<typeof attributeConditionSchema>;
+export type Condition =
+	| z.infer<typeof baseConditionSchema>
+	| {
+			operator: Extract<LogicalOperator, 'and' | 'or'>;
+			conditions: Condition[];
+	  }
+	| { operator: Extract<LogicalOperator, 'not'>; conditions: Condition };
+export type LogicalCondition = z.infer<typeof logicalConditionSchema>;
