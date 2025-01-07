@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
-import { Attributes, actions, attributeSchema, conditionSchema } from '@/schema';
+import { Action, Attributes, actions, attributeSchema, conditionSchema } from '@/schema';
 
 export class PolicyManager<T extends readonly [string, ...string[]]> {
 	private readonly resourceSchema: z.ZodSchema<Resource<T>>;
 	private readonly policySchema: z.ZodSchema<Policy<T>>;
-	private readonly policies: Policy<T>[] = [];
+	private readonly policies: Map<PolicyKey<T>, Policy<T>[]> = new Map();
 
 	constructor(private readonly resourcesTypes: T) {
 		this.resourcesTypes = resourcesTypes;
@@ -15,7 +15,13 @@ export class PolicyManager<T extends readonly [string, ...string[]]> {
 
 	addPolicy(policy: Policy<T>) {
 		this.validatePolicy(policy);
-		this.policies.push(policy);
+
+		const policyKey: PolicyKey<T> = `${policy.resource}:${policy.action}`;
+
+		if (!this.policies.has(policyKey)) {
+			this.policies.set(policyKey, []);
+		}
+		this.policies.get(policyKey)!.push(policy);
 	}
 
 	addPolicies(policies: Policy<T>[]) {
@@ -60,6 +66,8 @@ export class PolicyManager<T extends readonly [string, ...string[]]> {
 export type Policy<T extends readonly [string, ...string[]]> = z.infer<
 	ReturnType<PolicyManager<T>['createPolicySchema']>
 >;
+
+export type PolicyKey<T extends readonly [string, ...string[]]> = `${T[number]}:${Action}`;
 
 export type Resource<T extends readonly [string, ...string[]]> = z.infer<
 	ReturnType<PolicyManager<T>['createResourceSchema']>

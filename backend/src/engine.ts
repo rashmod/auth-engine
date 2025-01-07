@@ -1,4 +1,4 @@
-import type { Policy, Resource } from '@/policy-manager';
+import type { Policy, PolicyKey, Resource } from '@/policy-manager';
 import type {
 	Action,
 	AttributeCondition,
@@ -11,16 +11,15 @@ import type {
 import { equalityOperators, numericOperators } from '@/schema';
 
 export class Auth<T extends readonly [string, ...string[]]> {
-	constructor(private readonly policies: Policy<T>[]) {}
+	constructor(private readonly policies: Map<PolicyKey<T>, Policy<T>[]>) {}
 
 	isAuthorized(subject: Resource<T>, resource: Resource<T>, action: Action, log = false) {
 		this.log('subject', subject, log);
 		this.log('resource', resource, log);
 		this.log('action', action, log);
 
-		const relevantPolicies = this.policies.filter((policy) => {
-			return policy.resource === resource.type && policy.action === action;
-		});
+		const policyKey = this.getPolicyKey(resource, action);
+		const relevantPolicies = this.policies.get(policyKey) || [];
 		this.log('relevantPolicies', relevantPolicies, log);
 
 		for (const policy of relevantPolicies) {
@@ -366,6 +365,10 @@ export class Auth<T extends readonly [string, ...string[]]> {
 
 	private getDynamicKey(str: DynamicKey) {
 		return str.slice(1);
+	}
+
+	private getPolicyKey(resource: Resource<T>, action: Action): PolicyKey<T> {
+		return `${resource.type}:${action}`;
 	}
 
 	private log(message: string, data: unknown, log: boolean) {
