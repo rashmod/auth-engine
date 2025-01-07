@@ -101,10 +101,14 @@ export class Auth<T extends readonly [string, ...string[]]> {
 		switch (condition.operator) {
 			case 'eq':
 			case 'ne': {
-				const result =
-					condition.operator === 'eq'
-						? value === condition.referenceValue
-						: value !== condition.referenceValue;
+				const result = validateValue(
+					typeof value === typeof condition.referenceValue,
+					condition.operator,
+					value
+				);
+				condition.operator === 'eq'
+					? value === condition.referenceValue
+					: value !== condition.referenceValue;
 
 				return result;
 			}
@@ -313,7 +317,7 @@ export class Auth<T extends readonly [string, ...string[]]> {
 }
 
 class InvalidOperandError extends Error {
-	constructor(value: unknown, operator: string, message?: string) {
+	constructor(value: unknown, operator: string, message = '') {
 		super(
 			`Invalid value type: ${typeof value} for condition ${operator}\nvalue: ${JSON.stringify(value, null, 2)}\n${message}`
 		);
