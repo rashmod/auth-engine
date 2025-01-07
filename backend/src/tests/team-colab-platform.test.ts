@@ -17,9 +17,9 @@ import { PolicyManager } from '@/policy-manager';
 describe('Basic team collaboration app', () => {
 	const resources = ['user', 'project', 'task', 'file'] as const;
 
-	const policyGenerator = new PolicyManager(resources);
+	const policyManager = new PolicyManager(resources);
 
-	policyGenerator.addPolicies([
+	policyManager.addPolicies([
 		{
 			resource: 'task',
 			action: 'read',
@@ -166,68 +166,68 @@ describe('Basic team collaboration app', () => {
 		},
 	]);
 
-	const user1 = policyGenerator.createResource({
+	const user1 = policyManager.createResource({
 		id: 'user1',
 		type: 'user',
 		attributes: { id: 'user1', projects: ['project1'] },
 	});
 
-	const user2 = policyGenerator.createResource({
+	const user2 = policyManager.createResource({
 		id: 'user2',
 		type: 'user',
 		attributes: { projects: ['project2'] },
 	});
 
-	const user3 = policyGenerator.createResource({
+	const user3 = policyManager.createResource({
 		id: 'user3',
 		type: 'user',
 		attributes: { projects: ['project1'] },
 	});
 
-	const manager1 = policyGenerator.createResource({
+	const manager1 = policyManager.createResource({
 		id: 'user4',
 		type: 'user',
 		attributes: { id: 'user4', projects: ['project1'] },
 	});
 
-	const manager2 = policyGenerator.createResource({
+	const manager2 = policyManager.createResource({
 		id: 'user5',
 		type: 'user',
 		attributes: { id: 'user5', projects: ['project2'] },
 	});
 
-	const admin = policyGenerator.createResource({
+	const admin = policyManager.createResource({
 		id: 'admin',
 		type: 'user',
 		attributes: { role: 'admin' },
 	});
 
-	const project1 = policyGenerator.createResource({
+	const project1 = policyManager.createResource({
 		id: 'project1',
 		type: 'project',
 		attributes: { members: ['user1', 'user3', 'user4'], manager: 'user4' },
 	});
 
-	const task1 = policyGenerator.createResource({
+	const task1 = policyManager.createResource({
 		id: 'task1',
 		type: 'task',
 		attributes: { projectId: 'project1', assignee: 'user1', manager: 'user4' },
 		// the manager field is embedded at runtime
 	});
 
-	const file1 = policyGenerator.createResource({
+	const file1 = policyManager.createResource({
 		id: 'file1',
 		type: 'file',
 		attributes: { projectId: 'project1' },
 	});
 
-	const file2 = policyGenerator.createResource({
+	const file2 = policyManager.createResource({
 		id: 'file2',
 		type: 'file',
 		attributes: { projectId: 'project1', editors: ['user1'], manager: 'user4' },
 	});
 
-	const policies = policyGenerator.getPolicies();
+	const policies = policyManager.getPolicies();
 
 	const auth = new Auth(policies);
 

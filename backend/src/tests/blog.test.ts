@@ -16,8 +16,8 @@ describe('Basic blog app', () => {
 	// is the check for authenticated user necessary for when
 	// updating and deleting a blog when we are already checking for ownership
 
-	const policyGenerator = new PolicyManager(resources);
-	policyGenerator.addPolicies([
+	const policyManager = new PolicyManager(resources);
+	policyManager.addPolicies([
 		{
 			action: 'create',
 			resource: 'blog',
@@ -66,29 +66,29 @@ describe('Basic blog app', () => {
 		},
 	]);
 
-	const policies = policyGenerator.getPolicies();
+	const policies = policyManager.getPolicies();
 
 	const auth = new Auth(policies);
 
-	const user = policyGenerator.createResource({
+	const user = policyManager.createResource({
 		id: 'user1',
 		type: 'user',
 		attributes: { isAuthenticated: true, id: 'user1' },
 	});
 
-	const notAuthenticatedUser = policyGenerator.createResource({
+	const notAuthenticatedUser = policyManager.createResource({
 		id: 'user2',
 		type: 'user',
 		attributes: {},
 	});
 
-	const authenticatedUser = policyGenerator.createResource({
+	const authenticatedUser = policyManager.createResource({
 		id: 'user3',
 		type: 'user',
 		attributes: { isAuthenticated: true },
 	});
 
-	const blog = policyGenerator.createResource({
+	const blog = policyManager.createResource({
 		id: 'blog1',
 		type: 'blog',
 		attributes: { authorId: 'user1' },

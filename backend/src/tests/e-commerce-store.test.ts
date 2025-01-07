@@ -14,51 +14,51 @@ import { PolicyManager } from '@/policy-manager';
 describe('Basic e-commerce app', () => {
 	const resources = ['user', 'product', 'order'] as const;
 
-	const policyGenerator = new PolicyManager(resources);
+	const policyManager = new PolicyManager(resources);
 
-	const authenticatedUser = policyGenerator.createResource({
+	const authenticatedUser = policyManager.createResource({
 		id: 'user1',
 		type: 'user',
 		attributes: { isAuthenticated: true, id: 'user1' },
 	});
 
-	const unauthenticatedUser = policyGenerator.createResource({
+	const unauthenticatedUser = policyManager.createResource({
 		id: 'user2',
 		type: 'user',
 		attributes: { id: 'user2' },
 	});
 
-	const authenticatedAdmin = policyGenerator.createResource({
+	const authenticatedAdmin = policyManager.createResource({
 		id: 'admin1',
 		type: 'user',
 		attributes: { isAuthenticated: true, role: 'admin' },
 	});
 
-	const unauthenticatedAdmin = policyGenerator.createResource({
+	const unauthenticatedAdmin = policyManager.createResource({
 		id: 'admin2',
 		type: 'user',
 		attributes: { role: 'admin' },
 	});
 
-	const product = policyGenerator.createResource({
+	const product = policyManager.createResource({
 		id: 'product1',
 		type: 'product',
 		attributes: {},
 	});
 
-	const user1Order = policyGenerator.createResource({
+	const user1Order = policyManager.createResource({
 		id: 'order1',
 		type: 'order',
 		attributes: { userId: 'user1' },
 	});
 
-	const user2Order = policyGenerator.createResource({
+	const user2Order = policyManager.createResource({
 		id: 'order2',
 		type: 'order',
 		attributes: { userId: 'user2' },
 	});
 
-	policyGenerator.addPolicies([
+	policyManager.addPolicies([
 		{ resource: 'product', action: 'read' },
 		{
 			resource: 'product',
@@ -211,7 +211,7 @@ describe('Basic e-commerce app', () => {
 		},
 	]);
 
-	const policies = policyGenerator.getPolicies();
+	const policies = policyManager.getPolicies();
 
 	const auth = new Auth(policies);
 
