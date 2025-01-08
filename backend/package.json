@@ -1,23 +1,31 @@
 {
-	"name": "backend",
+	"name": "@rashmod/auth-engine",
 	"version": "1.0.0",
-	"main": "index.js",
+	"main": "./dist/index.js",
+	"module": "./dist/index.mjs",
+	"types": "./dist/index.d.ts",
 	"scripts": {
-		"start": "ts-node -r tsconfig-paths/register ./src/index.ts",
-		"build": "npx tsc",
-		"dev": "nodemon ./src/index.ts",
-		"test": "vitest"
+		"build": "tsup",
+		"test": "vitest",
+		"lint": "tsc"
 	},
-	"keywords": [],
-	"author": "",
+	"keywords": [
+		"auth",
+		"authorization"
+	],
+	"author": "rashmod",
+	"repository": {
+		"url": "https://github.com/rashmod/auth-engine"
+	},
 	"license": "ISC",
-	"description": "",
+	"description": "Framework agnostic Autherization engine for Node.js",
 	"devDependencies": {
 		"@trivago/prettier-plugin-sort-imports": "^5.2.0",
 		"@types/node": "^22.10.2",
 		"nodemon": "^3.1.9",
 		"prettier": "^3.4.2",
 		"ts-node": "^10.9.2",
+		"tsup": "^8.3.5",
 		"typescript": "^5.7.2",
 		"vitest": "^2.1.8"
 	},
