@@ -42,7 +42,7 @@ export class PolicyManager<T extends readonly [string, ...string[]]> {
 		this.policySchema.parse(policy);
 	}
 
-	private createPolicySchema() {
+	protected createPolicySchema() {
 		return z
 			.object({
 				action: actions,
@@ -52,7 +52,7 @@ export class PolicyManager<T extends readonly [string, ...string[]]> {
 			.strict();
 	}
 
-	private createResourceSchema() {
+	protected createResourceSchema() {
 		return z
 			.object({
 				id: z.string(),
