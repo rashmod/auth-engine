@@ -1,10 +1,8 @@
 import { useState } from 'react';
 
+import RoleSelection from '@/components/custom/role-selection';
 import UserSelection from '@/components/custom/user-selection';
 import { Button } from '@/components/ui/button';
-import '@/lib/auth/values';
-
-import RoleSelection from './components/custom/role-selection';
 
 function App() {
 	const [user, setUser] = useState({
