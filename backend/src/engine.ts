@@ -19,56 +19,59 @@ import {
 } from '@/schema';
 
 export class AuthEngine<T extends readonly [string, ...string[]]> {
-	constructor(private readonly policies: Map<PolicyKey<T>, Policy<T>[]>) {}
+	constructor(
+		private readonly policies: Map<PolicyKey<T>, Policy<T>[]>,
+		private readonly options: { debug?: boolean; logger?: Logger<T> }
+	) {}
 
-	isAuthorized(subject: Resource<T>, resource: Resource<T>, action: Action, log = false) {
-		this.log('subject', subject, log);
-		this.log('resource', resource, log);
-		this.log('action', action, log);
+	isAuthorized(subject: Resource<T>, resource: Resource<T>, action: Action, debug = false) {
+		this.log('subject', subject, debug);
+		this.log('resource', resource, debug);
+		this.log('action', action, debug);
 
 		const policyKey = this.getPolicyKey(resource, action);
 		const relevantPolicies = this.policies.get(policyKey) || [];
-		this.log('relevantPolicies', relevantPolicies, log);
+		this.log('relevantPolicies', relevantPolicies, debug);
 
 		for (const policy of relevantPolicies) {
-			const isAuthorized = this.abac(subject, resource, policy, log);
+			const isAuthorized = this.abac(subject, resource, policy, debug || this.options.debug);
 			if (isAuthorized) return true;
 		}
 
 		return false;
 	}
 
-	private abac(subject: Resource<T>, resource: Resource<T>, policy: Policy<T>, log = false) {
+	private abac(subject: Resource<T>, resource: Resource<T>, policy: Policy<T>, debug = false) {
 		if (!policy.conditions) {
-			this.log('Policy has no conditions, granting access', true, log);
+			this.log('Policy has no conditions, granting access', true, debug);
 			return true;
 		}
 
-		return this.evaluate(subject, resource, policy.conditions, log);
+		return this.evaluate(subject, resource, policy.conditions, debug);
 	}
 
 	private evaluate(
 		subject: Resource<T>,
 		resource: Resource<T>,
 		condition: Condition,
-		log = false
+		debug = false
 	): boolean {
 		const attributeCondition = attributeConditionSchema.safeParse(condition);
 		if (attributeCondition.success) {
-			this.log('Attribute Condition', condition, log);
-			return this.resolveAttributeCondition(subject, resource, attributeCondition.data, log);
+			this.log('Attribute Condition', condition, debug);
+			return this.resolveAttributeCondition(subject, resource, attributeCondition.data, debug);
 		}
 
 		const entityKeyCondition = entityKeyConditionSchema.safeParse(condition);
 		if (entityKeyCondition.success) {
-			this.log('Entity Key Condition', condition, log);
-			return this.evaluateEntityKeyCondition(subject, resource, entityKeyCondition.data, log);
+			this.log('Entity Key Condition', condition, debug);
+			return this.evaluateEntityKeyCondition(subject, resource, entityKeyCondition.data, debug);
 		}
 
 		const logicalCondition = logicalConditionSchema.safeParse(condition);
 		if (logicalCondition.success) {
-			this.log('Logical Condition', condition, log);
-			return this.evaluateLogicalCondition(subject, resource, logicalCondition.data, log);
+			this.log('Logical Condition', condition, debug);
+			return this.evaluateLogicalCondition(subject, resource, logicalCondition.data, debug);
 		}
 
 		throw new Error('Why are you here? We should never get here. Wrong condition.');
@@ -78,23 +81,23 @@ export class AuthEngine<T extends readonly [string, ...string[]]> {
 		subject: Resource<T>,
 		resource: Resource<T>,
 		logicalCondition: LogicalCondition,
-		log = false
+		debug = false
 	) {
 		switch (logicalCondition.operator) {
 			case 'and': {
 				const result = logicalCondition.conditions.every((c) =>
-					this.evaluate(subject, resource, c, log)
+					this.evaluate(subject, resource, c, debug)
 				);
 				return result;
 			}
 			case 'or': {
 				const result = logicalCondition.conditions.some((c) =>
-					this.evaluate(subject, resource, c, log)
+					this.evaluate(subject, resource, c, debug)
 				);
 				return result;
 			}
 			case 'not': {
-				const result = !this.evaluate(subject, resource, logicalCondition, log);
+				const result = !this.evaluate(subject, resource, logicalCondition, debug);
 				return result;
 			}
 			default:
@@ -165,7 +168,7 @@ export class AuthEngine<T extends readonly [string, ...string[]]> {
 		subject: Resource<T>,
 		resource: Resource<T>,
 		entityKeyCondition: EntityKeyCondition,
-		log = false
+		debug = false
 	) {
 		const collectionCondition = entityKeyCollectionConditionSchema.safeParse(entityKeyCondition);
 
@@ -188,7 +191,7 @@ export class AuthEngine<T extends readonly [string, ...string[]]> {
 			this.log(
 				'Entity Key Condition Values',
 				{ targetKey, collectionKey, targetValue, collectionValue },
-				log
+				debug
 			);
 
 			if (collectionValue === undefined || targetValue === undefined) {
@@ -235,7 +238,7 @@ export class AuthEngine<T extends readonly [string, ...string[]]> {
 			this.log(
 				'Entity Key Condition Values',
 				{ subjectKey, resourceKey, subjectValue, resourceValue },
-				log
+				debug
 			);
 
 			if (resourceValue === undefined || subjectValue === undefined) {
@@ -313,14 +316,14 @@ export class AuthEngine<T extends readonly [string, ...string[]]> {
 		subject: Resource<T>,
 		resource: Resource<T>,
 		attributeCondition: AttributeCondition,
-		log = false
+		debug = false
 	) {
 		const key = this.getDynamicKey(attributeCondition.attributeKey);
 
 		const resourceValue = resource.attributes[key];
 		const subjectValue = subject.attributes[key];
 
-		this.log('Attribute Condition Values', { key, subjectValue, resourceValue }, log);
+		this.log('Attribute Condition Values', { key, subjectValue, resourceValue }, debug);
 
 		const isSubjectArray = Array.isArray(subjectValue);
 		const isResourceArray = Array.isArray(resourceValue);
@@ -396,8 +399,26 @@ export class AuthEngine<T extends readonly [string, ...string[]]> {
 		return `${resource.type}:${action}`;
 	}
 
-	private log(message: string, data: unknown, log: boolean) {
-		if (log) console.log(message, JSON.stringify(data, null, 2));
+	private log(message: string, data: unknown, debug: boolean): void;
+	private log(
+		message: string,
+		data: unknown,
+		debug: boolean,
+		logger: Logger<T>,
+		args: Parameters<Logger<T>>[0]
+	): void;
+	private log(
+		message: string,
+		data: unknown,
+		debug: boolean,
+		logger?: Logger<T>,
+		args?: Parameters<Logger<T>>[0]
+	) {
+		if (logger && args) {
+			const { subject, action, resource, condition } = args;
+			logger({ subject, condition, resource, action });
+		}
+		if (debug) console.log(message, JSON.stringify(data, null, 2));
 	}
 }
 
@@ -408,3 +429,10 @@ class InvalidOperandError extends Error {
 		);
 	}
 }
+
+export type Logger<T extends readonly [string, ...string[]]> = (inputs: {
+	subject?: Resource<T>;
+	resource?: Resource<T>;
+	action?: Action;
+	condition?: Condition;
+}) => void;
